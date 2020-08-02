@@ -1,5 +1,5 @@
 #!/bin/python
-import os, shutil
+import os, shutil, sys
 import datetime
 
 
@@ -10,12 +10,16 @@ os.system(f'''pyinstaller --noupx                            \
               --hidden-import=sklearn.utils._cython_blas     \
               --hidden-import=skimage.io._plugins.tifffile_plugin   \
               --additional-hooks-dir=./hooks                        \
-              --distpath {build_dir} -F main.py''')
+              --distpath {build_dir} main.py''')
 
 
 shutil.copytree('HTML',   build_dir+'/HTML')
 shutil.copytree('models', build_dir+'/models')
+if 'linux' in sys.platform:
+    os.symlink('/main/main', build_dir+'/batnet')
+else:
+    open(build_dir+'/main.bat', 'w').write(r'main\main.exe')
 shutil.rmtree('./build')
-shutil.copyfile('settings.json', build_dir+'/')
+shutil.copyfile('settings.json', build_dir+'/settings.json')
 os.remove('./main.spec')
 

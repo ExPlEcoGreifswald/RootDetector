@@ -7,3 +7,5 @@ scikit-image==0.16.2
 tensorflow==2.0.0
 setuptools<45.0.0
 pyinstaller==3.5
+scipy==1.4.1
+matplotlib<3.2

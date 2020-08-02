@@ -4,6 +4,7 @@ global = {
   metadata    : {},
 
   cancel_requested : false,
+  skeletonize      : false,   //whether to show normal or skeletonized segmentations
 
   settings    : {}
 };
@@ -11,9 +12,10 @@ global = {
 
 const FILE = {name: '',
               file: undefined,    //javascript file object
-              flag: false,
-              results: {},
+              flag: false,        //redundant for roots ui
+              results: {},        //redundant
               processed: false,
+              mask: undefined,    //javascript file object (optional)
 };
 
 deepcopy = function(x){return JSON.parse(JSON.stringify(x))};
@@ -72,19 +74,38 @@ function upload_file(file){
       cache: false,            contentType: false,
       enctype: 'multipart/form-data',
       processData: false,
-  }).done(function (response) {
-    target  = $(`td.content[filename="${file.name}"]`);
-    if(target.html().trim().length>0)
-      //only do this once
-      return;
+  }).done(function (response) { create_filelist_item_content(file.name); });
+  return result;
+}
 
-    target.html('');
-    content = $("#filelist-item-content-template").tmpl([{filename:file.name}]);
-    content.appendTo(target);
-    content.find('.ui.dimmer').dimmer({'closable':false}).dimmer('show');
+
+function create_filelist_item_content(filename){
+  target  = $(`td.content[filename="${filename}"]`);
+  if(target.html().trim().length>0)
+    //only do this once
+    return;
+
+  target.html('');
+  content = $("#filelist-item-content-template").tmpl([{filename:filename}]);
+  content.appendTo(target);
+  content.find('.ui.dimmer').dimmer({'closable':false}).dimmer('show');
+}
+
+
+function upload_mask(file){
+  var formData = new FormData();
+  formData.append('files', file );
+  formData.append('filename', 'mask_'+file.name );
+  result = $.ajax({
+      url: 'file_upload',      type: 'POST',
+      data: formData,          async: false,
+      cache: false,            contentType: false,
+      enctype: 'multipart/form-data',
+      processData: false,
   });
   return result;
 }
+
 
 
 function sortObjectByValue(o) {
@@ -218,10 +239,15 @@ function process_file(filename){
 
 
   upload_file(global.input_files[filename].file);
+  if(!!global.input_files[filename].mask)
+    upload_mask(global.input_files[filename].mask);
+  
   //send a processing request to python update gui with the results
   return $.get(`/process_image/${filename}`).done(function(data){
-      time = new Date().getTime()
-      $(`[id="segmented_${filename}"]`).attr('src', `/images/segmented_${filename}.png?_=${time}`);
+      global.input_files[filename].processed=true;
+      
+      var url = src_url_for_segmented_image(filename);
+      $(`[filename="${filename}"]`).find('img.segmented').attr('src', url);
       $(`[id="dimmer_${filename}"]`).dimmer('hide');
 
       for(i in data.labels)
@@ -233,7 +259,6 @@ function process_file(filename){
 
       //add
       $(`.ui.title[filename="${filename}"]`).find('label').wrap($('<b>'))
-      global.input_files[filename].processed=true;
       delete_image(filename);
     });
 }
@@ -325,13 +350,10 @@ function on_download_processed(){
 
   for(f in global.input_files){
     if(global.input_files[f].processed){
-      processed_f = $(`[id="segmented_${f}"]`).attr('src');
+      processed_f = $(`[filename="${f}"]`).find('img.segmented').attr('src');
       downloadURI(processed_f, '');
     }
   }
-
-  //if(!!csvtxt)
-  //  download('detected_bats.csv', csvtxt)
 }
 
 
@@ -362,12 +384,30 @@ function on_image_click(e){
 
 
 
+function src_url_for_segmented_image(filename){
+  if(!global.input_files[filename].processed)
+    return "";
+  else if(global.skeletonize)
+    return `/images/skeletonized_${filename}.png?=${new Date().getTime()}`
+  else
+    return `/images/segmented_${filename}.png?=${new Date().getTime()}`
+}
 
+function set_skeletonized(x){
+  global.skeletonize = !!x;
+  for(var fname in global.input_files){
+    var url = src_url_for_segmented_image(fname);
+    $(`[filename="${fname}"]`).find('img.segmented').attr('src', url);
+  }
+}
 
 
 function save_settings(_){
-  active_model = $("#settings-active-model").dropdown('get value');
+  var active_model = $("#settings-active-model").dropdown('get value');
   $.post(`/settings?active_model=${active_model}`).done(load_settings);
+
+  var skeletonize  = $("#settings-skeletonize").checkbox('is checked');
+  set_skeletonized(skeletonize);
 }
 
 function on_settings(){
@@ -392,5 +432,27 @@ function load_settings(){
 
 
 
+filebasename = (filename) => filename.split('.').slice(0, -1).join('.');
+
+function on_inputmasks_select(input){
+  console.log(input);
+  for(maskfile of input.target.files){
+    //var maskfile     = input.target.files[i];
+    var maskbasename = filebasename(maskfile.name);
+
+    for(inputfile of Object.values(global.input_files)){
+      if(filebasename(inputfile.name) == maskbasename){
+        console.log('Matched mask for input file ',inputfile.name);
+
+        //indicate in the file table that a mask is available with a red plus icon
+        var $tablerow = $(`.ui.title[filename="${inputfile.name}"]`)
+        $tablerow.find('.has-mask-indicator').show();
+        $tablerow.find('.image.icon').addClass('outline');
+
+        inputfile.mask = maskfile;
+      }
+    }
+  }
+}
 
 //

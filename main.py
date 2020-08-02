@@ -10,14 +10,14 @@ import tensorflow.keras as keras
 
 import numpy as np
 arange = np.arange
-import skimage.io as skio
-import skimage.draw as skdraw
-import skimage.transform as sktransform
-import skimage.measure as skmeasure
-import skimage.morphology as skmorph
-import sklearn.svm as sksvm
+import skimage.io              as skio
+import skimage.draw            as skdraw
+import skimage.transform       as sktransform
+import skimage.measure         as skmeasure
+import skimage.morphology      as skmorph
+import sklearn.svm             as sksvm
 import sklearn.model_selection as skms
-import sklearn.utils as skutils
+import sklearn.utils           as skutils
 
 import PIL
 PIL.Image.MAX_IMAGE_PIXELS = None #Needed to open large images
@@ -48,8 +48,9 @@ def staticfiles(x):
 def file_upload():
     files = request.files.getlist("files")
     for f in files:
-        print('Upload: %s'%f.filename)
-        fullpath = os.path.join(TEMPFOLDER.name, os.path.basename(f.filename) )
+        filename = request.form.get('filename', f.filename)
+        print('Upload: %s'%filename)
+        fullpath = os.path.join(TEMPFOLDER.name, os.path.basename(filename) )
         f.save(fullpath)
         #save the file additionally as jpg to make sure format is compatible with browser (tiff)
         processing.write_as_jpeg(fullpath+'.jpg', processing.load_image(fullpath) )
@@ -65,8 +66,11 @@ def process_image(imgname):
     fullpath     = os.path.join(TEMPFOLDER.name, imgname)
     image        = processing.load_image(fullpath)
     result       = processing.process_image(image, processing.progress_callback_for_image(imgname))
-
+    skelresult   = processing.skeletonize(result)
+    result       = processing.maybe_add_mask(result, fullpath)
+    skelresult   = processing.maybe_add_mask(skelresult, fullpath)
     processing.write_as_png(os.path.join(TEMPFOLDER.name, 'segmented_'+imgname+'.png'), result)
+    processing.write_as_png(os.path.join(TEMPFOLDER.name, 'skeletonized_'+imgname+'.png'), skelresult)
     return flask.jsonify({'labels':[]})
 
 @app.route('/processing_progress/<imgname>')
