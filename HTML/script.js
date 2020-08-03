@@ -297,7 +297,7 @@ function process_all(){
       return;
     }
     $('#cancel-processing-button').show();
-    $button.html(`Processing ${j}/${Object.values(global.input_files).length}`);
+    $button.html(`Processing... ${j}/${Object.values(global.input_files).length}`);
 
     f = Object.values(global.input_files)[j];
     if(!f.processed)
@@ -339,7 +339,7 @@ function downloadURI(uri, name)
     link.remove();
 }
 
-function on_download_processed(){
+async function on_download_processed(){
   if(Object.keys(global.input_files).length==0){
     $('#download-processed-button').popup({on       : 'manual',
                                      position : 'bottom right',
@@ -352,6 +352,8 @@ function on_download_processed(){
     if(global.input_files[f].processed){
       processed_f = $(`[filename="${f}"]`).find('img.segmented').attr('src');
       downloadURI(processed_f, '');
+      //sleep for a few milliseconds because chrome does not allow more than 10 simulataneous downloads
+      await new Promise(resolve => setTimeout(resolve, 250));
     }
   }
 }

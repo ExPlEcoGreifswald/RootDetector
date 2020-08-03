@@ -105,7 +105,7 @@ def maybe_add_mask(image, input_image_path):
        if it exists, blends it with image'''
 
     basename = os.path.splitext(os.path.basename(input_image_path))[0]
-    pattern  = os.path.join( os.path.dirname(input_image_path), 'mask_'+basename+'*' )
+    pattern  = os.path.join( os.path.dirname(input_image_path), 'mask_'+basename+'*.png' )
     masks    = glob.glob(pattern)
     if len(masks)==1:
         mask          = skio.imread(masks[0])[...,:3]
