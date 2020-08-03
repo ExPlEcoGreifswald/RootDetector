@@ -24,17 +24,16 @@ function init(){
 }
 
 
-
+//update the accordion file list/table
 function update_inputfiles_list(){
   $filestable = $('#filetable');
   $filestable.find('tbody').html('');
   for(f of Object.values(global.input_files)){
       $("#filetable-item-template").tmpl([{filename:f.name}]).appendTo($filestable.find('tbody'));
-      update_per_file_results(f.name);
   }
 }
 
-
+//set global.input_files and update ui
 function set_input_files(files){
   global.input_files = {};
   global.metadata    = {};
@@ -49,10 +48,12 @@ function set_input_files(files){
   }
 }
 
+//called when user selects one or multiple input files
 function on_inputfiles_select(input){
   set_input_files(input.target.files);
 }
 
+//called when user selects a folder with input files
 function on_inputfolder_select(input){
   files = [];
   for(f of input.files)
@@ -61,7 +62,7 @@ function on_inputfolder_select(input){
   set_input_files(files);
 }
 
-
+//sends a file to the flask server
 function upload_file(file){
   var formData = new FormData();
   formData.append('files', file );
@@ -75,7 +76,7 @@ function upload_file(file){
   return result;
 }
 
-
+//creates the ui item in the accodion list (that shows the input image and segmentation mask)
 function create_filelist_item_content(filename){
   target  = $(`td.content[filename="${filename}"]`);
   if(target.html().trim().length>0)
@@ -88,7 +89,7 @@ function create_filelist_item_content(filename){
   content.find('.ui.dimmer').dimmer({'closable':false}).dimmer('show');
 }
 
-
+//sends an image and mark it as an exclusion mask
 function upload_mask(file){
   var formData = new FormData();
   formData.append('files', file );
@@ -111,17 +112,11 @@ function sortObjectByValue(o) {
 
 
 
-
-function update_per_file_results(filename, main_table_only=false){
-  //refresh the gui for one file
-  results = global.input_files[filename].results;
-}
-
-
-
+//send an image to flask and request to process it
 function process_file(filename){
   $process_button = $(`.ui.primary.button[filename="${filename}"]`);
   $process_button.html(`<div class="ui active tiny inline loader"></div> Processing...`);
+
 
   function progress_polling(){
     $.get(`/processing_progress/${filename}`, function(data) {
@@ -148,9 +143,6 @@ function process_file(filename){
       $(`[filename="${filename}"]`).find('img.segmented').attr('src', url);
       $(`[id="dimmer_${filename}"]`).dimmer('hide');
 
-      
-      //refresh gui
-      update_per_file_results(filename);
 
       //add
       $(`.ui.title[filename="${filename}"]`).find('label').wrap($('<b>'))
@@ -158,11 +150,13 @@ function process_file(filename){
     });
 }
 
+//send command to delete a file from the server's temporary folder (to not waste space)
 function delete_image(filename){
   $.get(`/delete_image/${filename}`);
 }
 
 
+//called when user clicks on a file table row to open it
 function on_accordion_open(x){
   target     = this;
   contentdiv = this.find('.content');
@@ -175,12 +169,13 @@ function on_accordion_open(x){
   //document.getElementById(`image_${filename}`).onload = function(){magnify(`image_${filename}`)};
 }
 
-
+//called when user clicks the 'Process' button
 function on_process_image(e){
   filename = e.target.attributes['filename'].value;
   process_file(filename);
 }
 
+//called when user clicks the 'Process all' button
 function process_all(){
   $button = $('#process-all-button')
 
@@ -205,6 +200,7 @@ function process_all(){
   setTimeout(loop_body, 1);  //using timeout to refresh the html between iterations
 }
 
+//called when user clicks the 'Cancel Processing' button
 function cancel_processing(){
   global.cancel_requested = true;
 }
@@ -224,6 +220,7 @@ function downloadURI(uri, name)
     link.remove();
 }
 
+//called when user clicks on the download button; downloads all segmented images
 async function on_download_processed(){
   if(Object.keys(global.input_files).length==0){
     $('#download-processed-button').popup({on       : 'manual',
@@ -275,6 +272,7 @@ function save_settings(_){
   set_skeletonized(skeletonize);
 }
 
+//called when the settings button is clicked
 function on_settings(){
   $('#settings-dialog').modal({onApprove: save_settings}).modal('show');
   $("#settings-active-model").dropdown('hide')
@@ -299,6 +297,7 @@ function load_settings(){
 
 filebasename = (filename) => filename.split('.').slice(0, -1).join('.');
 
+//called when user selected exclusion masks (in the 'File' menu)
 function on_inputmasks_select(input){
   console.log(input);
   for(maskfile of input.target.files){
