@@ -12,8 +12,6 @@ global = {
 
 const FILE = {name: '',
               file: undefined,    //javascript file object
-              flag: false,        //redundant for roots ui
-              results: {},        //redundant
               processed: false,
               mask: undefined,    //javascript file object (optional)
 };
@@ -40,7 +38,6 @@ function update_inputfiles_list(){
 function set_input_files(files){
   global.input_files = {};
   global.metadata    = {};
-  //global.per_file_results = {};
   for(f of files)
     global.input_files[f.name] = Object.assign({}, deepcopy(FILE), {name: f.name, file: f});
   update_inputfiles_list();
@@ -112,114 +109,15 @@ function sortObjectByValue(o) {
     return Object.keys(o).sort(function(a,b){return o[b]-o[a]}).reduce((r, k) => (r[k] = o[k], r), {});
 }
 
-function build_result_details(filename, result, index){
-  label_probabilities = result.prediction;
-  resultbox = $("#result-details-template").tmpl([{filename:filename,
-                                                   label:JSON.stringify(label_probabilities),
-                                                   time:new Date().getTime(),
-                                                   index:index}]);
-  console.log(label_probabilities);
-  keys=Object.keys(label_probabilities);
-  for(i in keys){
-    lbl = keys[i];
-    cbx = $("#checkbox-confidence-template").tmpl([{label: lbl? lbl : "Not A Bat",
-                                                    index: i}]);
-    cbx.find(".progress").progress({percent: label_probabilities[lbl]*100,
-                                    showActivity: false});
-    cbx.removeClass('active');
-    cbx.appendTo(resultbox.find(`table`));
-  }
-  //check the checkbox that is marked as selected in the result
-  resultbox.find(`.checkbox[index="${result.selected}"]`).checkbox('set checked');
 
-  //callback that makes sure that only one checkbox in the table is active
-  resultbox.find('.checkbox').checkbox({onChange:function(){
-    $(this).closest('table').find('.checkbox').checkbox('set unchecked');
-    $(this).parent().checkbox('set checked');
-    global.input_files[filename].results[index].selected = $(this).parent().attr('index');
-    update_per_file_results(filename, true);
-    console.log(filename + ":"+index + ":" + $(this).parent().attr('index'));
-  }});
-  return resultbox;
-}
 
-function get_selected_labels(filename){
-  results = global.input_files[filename].results;
-  selectedlabels = Object.values(results).map(x => (x.selected>=0)? Object.keys(x.prediction)[x.selected] : x.custom);
-  selectedlabels = selectedlabels.filter(Boolean);
-  return selectedlabels;
-}
 
 function update_per_file_results(filename, main_table_only=false){
   //refresh the gui for one file
   results = global.input_files[filename].results;
-
-  if(!main_table_only){
-    contentdiv = $(`[id="patches_${filename}"]`);
-    newcontentdiv = contentdiv.clone();
-    newcontentdiv.html('');
-    for(i in results)
-      build_result_details(filename, results[i], i).appendTo(newcontentdiv);
-    contentdiv.replaceWith(newcontentdiv);
-  }
-
-  //display only the labels marked as selected in the main table
-  selectedlabels = get_selected_labels(filename);
-  $(`[id="${filename}"]`).html(selectedlabels.join(', '));
-
-  //show or hide flag
-  global.input_files[filename].flag? $(`[id="flag_${filename}"]`).show() : $(`[id="flag_${filename}"]`).hide();
-}
-
-//callback when the user clicks on the remove button in a result box
-function on_remove_prediction(e){
-  //get the filename
-  filename = $(e.target).closest('[filename]').attr('filename');
-  //get the index of prediction within the file
-  index = $(e.target).closest('.column').attr('index');
-
-  predictions = global.input_files[filename].results;
-  //predictions.splice(index,1);
-  delete predictions[index];
-  update_per_file_results(filename, false);
 }
 
 
-
-//callback when the user enters into the custom label input in a result box
-function on_custom_label_input(e){
-  //get the filename
-  filename = $(e.target).closest('[filename]').attr('filename');
-  //get the index of prediction within the file
-  index = $(e.target).closest('.column').attr('index');
-  global.input_files[filename].results[index].custom = e.target.value;
-  update_per_file_results(filename, true);
-}
-
-function add_new_prediction(filename, prediction, i=undefined){
-  //sort labels by probability
-  prediction = sortObjectByValue(prediction);
-  //if(i==undefined)
-  //  i = Math.max(0, Math.max(...Object.keys(global.input_files[filename].results)) +1);
-  global.input_files[filename].results[i] =  {prediction:prediction, custom:'', selected:0};
-}
-
-function set_flag_if_needed(filename, predictions){
-  selectedlabels = Object.values(predictions).map(x => Object.keys(x)[0]);
-  selectedlabels = selectedlabels.filter(Boolean);
-  //set flag if there are no or more than one predictions (which are also not not-a-bat)
-  if(selectedlabels.length!=1)
-    global.input_files[filename].flag = true;
-
-  //set flag if the prediction is not the highest confidence (ie if there are more than one labels)
-  for(l of predictions)
-    if(Object.values(l).length!=1)
-      global.input_files[filename].flag = true;
-}
-
-function set_flag(filename, value){
-  global.input_files[filename].flag = value;
-}
 
 function process_file(filename){
   $process_button = $(`.ui.primary.button[filename="${filename}"]`);
@@ -250,10 +148,7 @@ function process_file(filename){
       $(`[filename="${filename}"]`).find('img.segmented').attr('src', url);
       $(`[id="dimmer_${filename}"]`).dimmer('hide');
 
-      for(i in data.labels)
-          add_new_prediction(filename, data.labels[i],i);
-      //set_flag_if_needed(filename, data.labels);
-      set_flag(filename, data.flag);
+      
       //refresh gui
       update_per_file_results(filename);
 
@@ -317,16 +212,6 @@ function cancel_processing(){
 
 
 
-function downloadText(filename, text) {
-  var element = document.createElement('a');
-  element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
-  element.setAttribute('download', filename);
-  element.style.display = 'none';
-  document.body.appendChild(element);
-  element.click();
-  document.body.removeChild(element);
-}
-
 function downloadURI(uri, name) 
 {
     var link = document.createElement("a");
@@ -360,29 +245,7 @@ async function on_download_processed(){
 
 
 
-function on_flag(e){
-  e.stopPropagation();
-  filename = $(e.target).closest('[filename]').attr('filename');
-  //toggle
-  global.input_files[filename].flag = !global.input_files[filename].flag;
-  update_per_file_results(filename, true);
-}
 
-function on_image_click(e){
-  console.log(e);
-  //add custom prediction
-  filename = $(e.target).closest('[filename]').attr('filename');
-  upload_file(global.input_files[filename].file);
-  x = Math.round( e.offsetX/e.target.getBoundingClientRect().width*100  )/100;
-  y = Math.round( e.offsetY/e.target.getBoundingClientRect().height*100 )/100;
-  i = 1000+Math.max(0, Math.max(...Object.keys(global.input_files[filename].results)) +1);
-  $.get(`/custom_patch/${filename}?x=${x}&y=${y}&index=${i}`).done(function(){
-    console.log('custom_patch done');
-    add_new_prediction(filename, {}, i)
-    update_per_file_results(filename);
-    delete_image(filename);
-  });
-}
 
 
 
