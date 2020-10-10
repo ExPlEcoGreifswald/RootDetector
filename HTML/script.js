@@ -264,37 +264,6 @@ function set_skeletonized(x){
 }
 
 
-function save_settings(_){
-  var active_model = $("#settings-active-model").dropdown('get value');
-  $.post(`/settings?active_model=${active_model}`).done(load_settings);
-
-  var skeletonize  = $("#settings-skeletonize").checkbox('is checked');
-  set_skeletonized(skeletonize);
-}
-
-//called when the settings button is clicked
-function on_settings(){
-  $('#settings-dialog').modal({onApprove: save_settings}).modal('show');
-  $("#settings-active-model").dropdown('hide')
-}
-
-function load_settings(){
-  $.get('/settings').done(function(data){
-    global.settings = data;
-    console.log(global.settings);
-
-    models_list = []
-    for(modelname of global.settings.models)
-      models_list.push({name:modelname, value:modelname, selected:(modelname==global.settings.active_model)})
-    $("#settings-active-model").dropdown({values: models_list, showOnFocus:false })
-  })
-}
-
-
-
-
-
-
 filebasename = (filename) => filename.split('.').slice(0, -1).join('.');
 
 //called when user selected exclusion masks (in the 'File' menu)

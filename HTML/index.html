@@ -144,6 +144,13 @@
         <input type="file" id="input_masks" style="display:none" onclick="this.value=null;"
               onchange="on_inputmasks_select(event)" accept="image/*" multiple>
 
+        <div class="divider"></div>
+        <label for="training_masks" class="ui icon item">
+          <i class="outline violet images icon"></i>
+          Select Training Masks
+        </label>
+        <input type="file" id="training_masks" style="display:none" onclick="this.value=null;"
+              onchange="on_trainingmasks_select(event)" accept="image/*" multiple>
       </div>
     </div>
 
@@ -152,6 +159,10 @@
     <label class="ui primary button" onclick="process_all()" id="process-all-button">
         <i class="play icon"></i>
         Process All Images
+    </label>
+    <label class="ui violet button" onclick="on_retrain()" id="retrain-button" style="display:none;">
+      <i class="redo alternate icon"></i>
+      Retrain
     </label>
     <label class="ui red button" onclick="cancel_processing()" id="cancel-processing-button" style="display:none;">
         <i class="x icon"></i>
@@ -233,6 +244,25 @@
       <div class="ui toggle checkbox" id="settings-skeletonize">
         <input type="checkbox">
         <label>Enable skeletonization of segmented roots</label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Retraining</label>
+      <div class="ui toggle checkbox" id="settings-enable-retraining">
+        <input type="checkbox">
+        <label>Enable retraining</label>
+      </div>
+    </div>
+
+    <div class="field" id="settings-new-modelname-field">
+      <label>Save retrained model</label>
+      <div class="ui action input">
+        <input type="text" placeholder="New model name" id="settings-new-modelname">
+        <button class="ui violet right labeled icon button" onclick="on_save_model()">
+          <i class="save icon"></i>
+          Save Model
+        </button>
       </div>
     </div>
 
