@@ -3,12 +3,13 @@
   <title>DigIT! Root Detector</title>
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
   <link rel="stylesheet" href="/static/thirdparty/semantic.min.css">
-  <script  src="/static/thirdparty/jquery-3.4.1.min.js"
-  integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+  <script src="/static/thirdparty/jquery-3.4.1.min.js"></script>
   <script src="/static/thirdparty/jquery.tmpl.min.js"></script>
   <script src="/static/thirdparty/semantic.min.js"></script>
 
+  <script src="/static/util.js"></script>
   <script src="/static/settings.js"></script>
+  <script src="/static/retraining.js"></script>
   <script src="/static/script.js"></script>
 
   <script src="/static/thirdparty/exif-js"></script>
@@ -21,7 +22,7 @@
     <tr class="ui title" filename="${filename}">
       <td> 
         <i class="dropdown icon"></i>
-        <i class="icons">
+        <i class="icons"  style="font-style: normal;">
           <i class="image icon"></i>
           <i class="top left corner red add icon has-mask-indicator" style="display:none"></i>
           <label>${filename}</label>
@@ -30,7 +31,7 @@
     </tr>
     <tr style="display:none">
       <td colspan="5" class="ui content" style="padding-bottom:21px" filename="${filename}">
-
+        {{tmpl({filename:filename}) "#filelist-item-content-template"}}
       </td>
     </tr>
   </script>
@@ -38,8 +39,7 @@
   <script id="filelist-item-content-template" type="text/x-jQuery-tmpl">
     <div filename="${filename}">
       <div class="ui large images">
-          <img class="ui image"       src="/images/${filename}.jpg"
-               id="image_${filename}">
+          <img class="ui image input-image" id="image_${filename}">
           <div class="ui image">
             <div class="ui dimmer" id='dimmer_${filename}'>
                   <div class="content">
@@ -160,7 +160,7 @@
         <i class="play icon"></i>
         Process All Images
     </label>
-    <label class="ui violet button" onclick="on_retrain()" id="retrain-button" style="display:none;">
+    <label class="ui violet button" onclick="on_retrain()" id="retrain-button" style="display:visible;">
       <i class="redo alternate icon"></i>
       Retrain
     </label>

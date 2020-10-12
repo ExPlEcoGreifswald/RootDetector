@@ -15,6 +15,7 @@ import skimage.draw            as skdraw
 import skimage.transform       as sktransform
 import skimage.measure         as skmeasure
 import skimage.morphology      as skmorph
+import skimage.util            as skimgutil
 import sklearn.svm             as sksvm
 import sklearn.model_selection as skms
 import sklearn.utils           as skutils
@@ -104,6 +105,36 @@ def settings():
         return 'OK'
     elif request.method=='GET':
         return flask.jsonify(processing.get_settings())
+
+
+@app.route('/start_training', methods=['POST'])
+def start_training():
+    imagefiles  = dict(request.form.lists())['filenames[]']
+    imagefiles  = [os.path.join(TEMPFOLDER.name, fname) for fname in imagefiles]
+    imagefiles  = [fname for fname in imagefiles if os.path.exists(fname)]
+    targetfiles = [os.path.splitext(fname)[0]+'.png'   for fname in imagefiles]
+    imagefiles  = [imgf  for imgf,tgtf in zip(imagefiles, targetfiles) if os.path.exists(tgtf)]
+    jsonfiles   = [tgtf  for tgtf      in targetfiles                  if os.path.exists(tgtf)]
+    if len(imagefiles)>0:
+        processing.retrain(imagefiles, targetfiles)
+        return 'OK'
+    else:
+        print(f'Could not find any of the input files')
+        flask.abort(404)
+
+
+
+
+
+
+@app.route('/streaming')
+def streaming():
+    def generator():
+        import time
+        for i in range(50):
+            time.sleep(0.1)
+            yield f'{i}'
+    return flask.Response(generator(), mimetype='text/csv')
 
 
 is_debug = sys.argv[0].endswith('.py')

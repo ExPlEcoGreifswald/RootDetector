@@ -118,3 +118,12 @@ def maybe_add_mask(image, input_image_path):
 def skeletonize(image):
     return skmorph.skeletonize(image>0.5)
 
+def on_train_epoch(e):
+    pass
+
+def retrain(imagefiles, targetfiles):
+    #GLOBALS.current_training_epoch = 0
+    GLOBALS.models[GLOBALS.active_model].retrain(imagefiles, targetfiles, 
+                                                 epochs=25,
+                                                 callback=on_train_epoch)
+    #GLOBALS.active_model = ''

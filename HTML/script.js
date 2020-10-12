@@ -1,22 +1,21 @@
 
 global = {
-  input_files : {},      //{"banana.JPG": FILE}
-  metadata    : {},
+  input_files      : {},      //{"banana.JPG": FILE}
+  metadata         : {},
 
-  cancel_requested : false,
+  cancel_requested : false,   //user requested cancelling either inference or training
   skeletonize      : false,   //whether to show normal or skeletonized segmentations
 
-  settings    : {}
+  settings         : {}
 };
 
 
-const FILE = {name: '',
-              file: undefined,    //javascript file object
-              processed: false,
-              mask: undefined,    //javascript file object (optional)
+const FILE = {name:          '',
+              file:          undefined,    //javascript file object
+              processed:     false,
+              mask:          undefined,    //javascript file object (optional)
+              training_mask: undefined,    //javascript file object (optional)
 };
-
-deepcopy = function(x){return JSON.parse(JSON.stringify(x))};
 
 
 function init(){
@@ -158,13 +157,18 @@ function delete_image(filename){
 
 //called when user clicks on a file table row to open it
 function on_accordion_open(x){
-  target     = this;
-  contentdiv = this.find('.content');
-  if(contentdiv[0].innerHTML.trim())
+  var contentdiv = this.find('.content');
+  var imgelement = contentdiv.find('.input-image');
+  var content_already_loaded = !!imgelement.attr('src')
+  if(content_already_loaded)
     return;
-  filename   = contentdiv.attr('filename');
-  file       = global.input_files[filename].file;
-  upload_file(file);
+  //load full image
+  var filename   = contentdiv.attr('filename');
+  var file       = global.input_files[filename].file;
+  upload_file_to_flask('/file_upload',file).done(()=>{
+    imgelement.attr('src', `/images/${filename}.jpg`);
+    imgelement.on('load', ()=>{delete_image(filename);})
+  });
 
   //document.getElementById(`image_${filename}`).onload = function(){magnify(`image_${filename}`)};
 }
@@ -245,7 +249,7 @@ async function on_download_processed(){
 
 
 
-
+//returns the correct url for the segmented <img>, depending on whether global.skeletonize is set
 function src_url_for_segmented_image(filename){
   if(!global.input_files[filename].processed)
     return "";
@@ -258,13 +262,14 @@ function src_url_for_segmented_image(filename){
 function set_skeletonized(x){
   global.skeletonize = !!x;
   for(var fname in global.input_files){
-    var url = src_url_for_segmented_image(fname);
-    $(`[filename="${fname}"]`).find('img.segmented').attr('src', url);
+    var img_element = $(`[filename="${fname}"]`).find('img.segmented');
+    if(!!img_element.attr('src') && !img_element.attr('src').startsWith('blob')){
+      var url         = src_url_for_segmented_image(fname);
+      img_element.attr('src', url);
+    }
   }
 }
 
-
-filebasename = (filename) => filename.split('.').slice(0, -1).join('.');
 
 //called when user selected exclusion masks (in the 'File' menu)
 function on_inputmasks_select(input){
@@ -289,3 +294,19 @@ function on_inputmasks_select(input){
 }
 
 //
+
+
+
+
+
+function ajax_streaming_test(){
+  var last_response_len = false;
+  $.ajax('/streaming', { xhrFields: { onprogress: function(e){
+            console.log(e.currentTarget.response);
+          }
+      }
+  }).done(function(data)  {
+      console.log('Complete response = ' + data);
+  });
+  console.log('Request Sent');
+}
