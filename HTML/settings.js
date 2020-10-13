@@ -1,10 +1,19 @@
+//called when user clicks on save in the settings dialog
 function save_settings(_){
-    var active_model = $("#settings-active-model").dropdown('get value');
-    $.post(`/settings?active_model=${active_model}`).done(load_settings);
+    global.settings.active_model = $("#settings-active-model").dropdown('get value');
+    $('#settings-ok-button').addClass('loading');
+    $.post(`/settings?active_model=${global.settings.active_model}`).done((x)=>{
+        $('#settings-dialog').modal('hide');
+        $('#settings-ok-button').removeClass('loading');
+        console.log('Settings:',x)
+    });
   
     var skeletonize  = $("#settings-skeletonize").checkbox('is checked');
     set_skeletonized(skeletonize);
     set_training_mode($('#settings-enable-retraining').checkbox('is checked'));
+
+    //do not close the dialog, doing this manually
+    return false;
 }
   
 //called when the settings button is clicked

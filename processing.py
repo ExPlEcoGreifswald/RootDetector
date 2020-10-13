@@ -23,26 +23,25 @@ import skimage.io         as skio
 
 
 class GLOBALS:
-    #detector            = None
-    models              = dict()            #modelname:model
+#    models              = dict()            #modelname:model
     active_model        = ''                #modelname
-    processing_progress = dict() #filename:percentage
+    model               = None
+    processing_progress = dict()            #filename:percentage
     processing_lock     = threading.Lock()
 
 
 
 def init():
-    load_all_models()
     load_settings()
 
-def load_all_models():
-    for modelfile in glob.glob('models/*.dill'):
-        modelname = os.path.basename(modelfile).replace('.dill','')
-        GLOBALS.models[modelname] = dill.load(open(modelfile, 'rb'))
-        print('Finished loading ', modelfile)
+def load_active_model():
+    print('Loading', GLOBALS.active_model)
+    filepath      = os.path.join('models', GLOBALS.active_model+'.dill')
+    GLOBALS.model = dill.load(open(filepath, 'rb'))
+    print('Finished loading', filepath)
 
 def load_image(path):
-    x = GLOBALS.models[GLOBALS.active_model].load_image(path)
+    x = GLOBALS.model.load_image(path)
     x = x[...,tf.newaxis] if len(x.shape)==2 else x
     x = x[...,:3]
     return x
@@ -51,7 +50,7 @@ def load_image(path):
 def process_image(image, progress_callback=None):
     with GLOBALS.processing_lock:
         print('Processing file with model', GLOBALS.active_model)
-        return GLOBALS.models[GLOBALS.active_model].process_image(image, progress_callback=progress_callback)
+        return GLOBALS.model.process_image(image, progress_callback=progress_callback)
 
 
 def write_as_png(path,x):
@@ -85,18 +84,16 @@ def load_settings():
     #GLOBALS.active_model = list(GLOBALS.models.keys())[0]
 
 def get_settings():
-    s = dict( models = list(GLOBALS.models.keys()),
+    modelfiles = glob.glob('models/*.dill')
+    modelnames = [os.path.splitext(os.path.basename(fname))[0] for fname in modelfiles]
+    s = dict( models       = modelnames,
               active_model = GLOBALS.active_model )
     return s
 
 def set_settings(s):
-    print(s)
-    newactivemodel = s.get('active_model')
-    if newactivemodel in GLOBALS.models:
-        GLOBALS.active_model = newactivemodel
-        print('Setting active model to :', GLOBALS.active_model)
-    elif GLOBALS.active_model=='':
-        GLOBALS.active_model = list(GLOBALS.models.keys())[0]
+    print('New settings:',s)
+    GLOBALS.active_model       = s.get('active_model')
+    load_active_model()
     json.dump(dict(active_model=GLOBALS.active_model), open('settings.json','w'))
 
 
@@ -122,8 +119,9 @@ def on_train_epoch(e):
     pass
 
 def retrain(imagefiles, targetfiles):
-    #GLOBALS.current_training_epoch = 0
-    GLOBALS.models[GLOBALS.active_model].retrain(imagefiles, targetfiles, 
-                                                 epochs=25,
-                                                 callback=on_train_epoch)
-    #GLOBALS.active_model = ''
+    with GLOBALS.processing_lock:
+        #GLOBALS.current_training_epoch = 0
+        GLOBALS.model.retrain(imagefiles, targetfiles, 
+                              epochs=25,
+                              callback=on_train_epoch)
+        #GLOBALS.active_model = ''
