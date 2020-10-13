@@ -4,7 +4,9 @@ sleep    = function(ms) { return new Promise(resolve => setTimeout(resolve, ms))
 //returns the name of a file without its ending
 filebasename = (filename) => filename.split('.').slice(0, -1).join('.');
 
-
+function sortObjectByValue(o) {
+    return Object.keys(o).sort(function(a,b){return o[b]-o[a]}).reduce((r, k) => (r[k] = o[k], r), {});
+}
 
 function upload_file_to_flask(url, file){
     var formData = new FormData();

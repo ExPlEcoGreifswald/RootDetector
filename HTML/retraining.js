@@ -39,4 +39,6 @@ function on_retrain(){
 
   var filenames = files.map(x => x.name);
   $.post('/start_training', {'filenames':filenames});
+  $('#cancel-processing-button').show();
+  global.cancel_requested = false;
 }

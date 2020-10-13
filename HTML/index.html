@@ -23,7 +23,7 @@
       <td> 
         <i class="dropdown icon"></i>
         <i class="icons"  style="font-style: normal;">
-          <i class="image icon"></i>
+          <i class="image outline icon" title="File not yet processed"></i>
           <i class="top left corner red add icon has-mask-indicator" style="display:none"></i>
           <label>${filename}</label>
         </i>
@@ -50,6 +50,10 @@
                   </div>
             </div>
             <img src="/images/${filename}.jpg" class="segmented">
+            <div class="ui top right attached label icon" style="border-top-right-radius: 0;">
+              <i class="zoom-in icon" style="cursor:pointer; display:none;" onclick="on_zoom_button(event)" title="Zoom"></i>
+              <i class="play link blue icon process-single-image" onclick="on_process_image(event)"  title="Process Image"></i>
+            </div>
           </div>
       </div>
 

@@ -61,33 +61,6 @@ function on_inputfolder_select(input){
   set_input_files(files);
 }
 
-//sends a file to the flask server
-function upload_file(file){
-  var formData = new FormData();
-  formData.append('files', file );
-  result = $.ajax({
-      url: 'file_upload',      type: 'POST',
-      data: formData,          async: false,
-      cache: false,            contentType: false,
-      enctype: 'multipart/form-data',
-      processData: false,
-  }).done(function (response) { create_filelist_item_content(file.name); });
-  return result;
-}
-
-//creates the ui item in the accodion list (that shows the input image and segmentation mask)
-function create_filelist_item_content(filename){
-  target  = $(`td.content[filename="${filename}"]`);
-  if(target.html().trim().length>0)
-    //only do this once
-    return;
-
-  target.html('');
-  content = $("#filelist-item-content-template").tmpl([{filename:filename}]);
-  content.appendTo(target);
-  content.find('.ui.dimmer').dimmer({'closable':false}).dimmer('show');
-}
-
 //sends an image and mark it as an exclusion mask
 function upload_mask(file){
   var formData = new FormData();
@@ -105,17 +78,13 @@ function upload_mask(file){
 
 
 
-function sortObjectByValue(o) {
-    return Object.keys(o).sort(function(a,b){return o[b]-o[a]}).reduce((r, k) => (r[k] = o[k], r), {});
-}
-
-
 
 //send an image to flask and request to process it
 function process_file(filename){
+  $(`[id="dimmer_${filename}"]`).dimmer('show');
   $process_button = $(`.ui.primary.button[filename="${filename}"]`);
   $process_button.html(`<div class="ui active tiny inline loader"></div> Processing...`);
-
+  set_processed(filename, false);
 
   function progress_polling(){
     $.get(`/processing_progress/${filename}`, function(data) {
@@ -130,21 +99,18 @@ function process_file(filename){
 
 
 
-  upload_file(global.input_files[filename].file);
+  upload_file_to_flask('/file_upload', global.input_files[filename].file);
   if(!!global.input_files[filename].mask)
     upload_mask(global.input_files[filename].mask);
   
   //send a processing request to python update gui with the results
   return $.get(`/process_image/${filename}`).done(function(data){
-      global.input_files[filename].processed=true;
+      set_processed(filename, true);
       
       var url = src_url_for_segmented_image(filename);
       $(`[filename="${filename}"]`).find('img.segmented').attr('src', url);
       $(`[id="dimmer_${filename}"]`).dimmer('hide');
 
-
-      //add
-      $(`.ui.title[filename="${filename}"]`).find('label').wrap($('<b>'))
       delete_image(filename);
     });
 }
@@ -168,6 +134,7 @@ function on_accordion_open(x){
   upload_file_to_flask('/file_upload',file).done(()=>{
     imgelement.attr('src', `/images/${filename}.jpg`);
     imgelement.on('load', ()=>{delete_image(filename);})
+    contentdiv.find('.ui.dimmer').dimmer({'closable':false}).dimmer('show');
   });
 
   //document.getElementById(`image_${filename}`).onload = function(){magnify(`image_${filename}`)};
@@ -175,7 +142,7 @@ function on_accordion_open(x){
 
 //called when user clicks the 'Process' button
 function on_process_image(e){
-  filename = e.target.attributes['filename'].value;
+  var filename = $(e.target).closest('[filename]').attr('filename');
   process_file(filename);
 }
 
@@ -194,7 +161,7 @@ function process_all(){
     $button.html(`Processing... ${j}/${Object.values(global.input_files).length}`);
 
     f = Object.values(global.input_files)[j];
-    if(!f.processed)
+    //if(!f.processed)  //re-processing anyway, the model may have been retrained
       await process_file(f.name);
 
     j+=1;
@@ -293,8 +260,32 @@ function on_inputmasks_select(input){
   }
 }
 
-//
+//sets the global.input_files[x].processed variable and updates icons accordingly
+function set_processed(filename, value){
+  var $tablerow = $(`.ui.title[filename="${filename}"]`);
+  var $icon     = $tablerow.find('.image.icon');
+  var $label    = $tablerow.find('label');
 
+  //remove the <b> tag around the label if needed
+  if($label.parent().prop('tagName') == 'B')
+    $label.unwrap();
+
+  if(!value){
+    $icon.attr('class', 'image outline icon');
+    $icon.attr('title', 'File not yet processed');
+  }
+  else if(value=='training_mask'){
+    $icon.attr('class', 'image violet icon');
+    $icon.attr('title', 'Training mask loaded');
+    $label.wrap($('<b>'));
+  }
+  else if(!!value){
+    $icon.attr('class', 'image icon');
+    $icon.attr('title', 'File processed');
+    $label.wrap($('<b>'))
+  }
+  global.input_files[filename].processed = !!value;
+}
 
 
 
