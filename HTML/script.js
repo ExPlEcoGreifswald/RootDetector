@@ -134,7 +134,8 @@ function on_accordion_open(x){
   upload_file_to_flask('/file_upload',file).done(()=>{
     imgelement.attr('src', `/images/${filename}.jpg`);
     imgelement.on('load', ()=>{delete_image(filename);})
-    contentdiv.find('.ui.dimmer').dimmer({'closable':false}).dimmer('show');
+    if(!global.input_files[filename].processed)
+      contentdiv.find('.ui.dimmer').dimmer({'closable':false}).dimmer('show');
   });
 
   //document.getElementById(`image_${filename}`).onload = function(){magnify(`image_${filename}`)};

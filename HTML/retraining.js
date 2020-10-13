@@ -2,6 +2,8 @@ function load_training_mask(maskfile, jpgfile){
     var url = URL.createObjectURL(maskfile);
     $(`[filename="${jpgfile}"]`).find('img.segmented').attr('src', url);
     $(`[id="dimmer_${jpgfile}"]`).dimmer('hide');
+    set_processed(inputfile.name, 'training_mask')
+    global.input_files[inputfile.name].training_mask = maskfile;
 }
 
 
@@ -14,8 +16,6 @@ function on_trainingmasks_select(input){
         if(filebasename(inputfile.name) == basename){
           console.log('Matched mask for input file ',inputfile.name);
           load_training_mask(maskfile, inputfile.name);
-          global.input_files[inputfile.name].processed = true;
-          global.input_files[inputfile.name].training_mask = maskfile;
         }
       }
     }
