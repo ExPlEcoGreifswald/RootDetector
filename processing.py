@@ -30,7 +30,7 @@ class GLOBALS:
     current_training_epoch = 0
 
 class CONSTANTS:
-    N_EPOCHS = 5                                           #XXX: 5 epochs for testing only
+    N_EPOCHS = 15
 
 
 

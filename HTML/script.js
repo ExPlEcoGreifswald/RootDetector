@@ -90,10 +90,11 @@ function process_file(filename){
   function progress_polling(){
     $.get(`/processing_progress/${filename}`, function(data) {
         //console.log(filename, data);
-        $process_button = $(`.ui.primary.button[filename="${filename}"]`);
-        $process_button.html(`<div class="ui active tiny inline loader"></div> Processing...${Math.round(data*100)}%`);
-        if(!global.input_files[filename].processed)
+        if(!global.input_files[filename].processed){
+          $process_button = $(`.ui.primary.button[filename="${filename}"]`);
+          $process_button.html(`<div class="ui active tiny inline loader"></div> Processing...${Math.round(data*100)}%`);
           setTimeout(progress_polling,1000);
+        }
     });
   }
   setTimeout(progress_polling,1000);
@@ -111,6 +112,7 @@ function process_file(filename){
       var url = src_url_for_segmented_image(filename);
       $(`[filename="${filename}"]`).find('img.segmented').attr('src', url);
       $(`[id="dimmer_${filename}"]`).dimmer('hide');
+      $process_button.html(`Process Image`);
 
       delete_image(filename);
     });
@@ -258,7 +260,10 @@ function on_inputmasks_select(input){
         //indicate in the file table that a mask is available with a red plus icon
         var $tablerow = $(`.ui.title[filename="${inputfile.name}"]`)
         $tablerow.find('.has-mask-indicator').show();
-        $tablerow.find('.image.icon').addClass('outline');
+
+        //set file as not processed and show the dimmer again to hide previous results
+        set_processed(inputfile.name, false);
+        $(`[id="dimmer_${inputfile.name}"]`).dimmer('show');
 
         inputfile.mask = maskfile;
       }

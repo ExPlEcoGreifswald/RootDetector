@@ -25,6 +25,9 @@ if is_win:
             get_module_file_attribute('scipy')), location, "*.dll")
         if glob.glob(dll_glob):
             binaries.append((dll_glob, "."))
+            print('*'*40)
+            print(binaries)
+            print('*'*40)
 
 # collect library-wide utility extension modules
 hiddenimports = ['scipy._lib.%s' % m for m in [
