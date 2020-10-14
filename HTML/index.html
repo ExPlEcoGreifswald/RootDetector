@@ -126,15 +126,14 @@
       <i class="dropdown icon"></i>
       <div class="ui menu">
         <label for="input_images" class="ui icon item">
-          <i class="images icon"></i>
+          <i class="images outline icon"></i>
           Select Input Images
         </label>
         <input type="file" id="input_images" style="display:none"
               onchange="on_inputfiles_select(event)" accept="image/*" multiple>
         
-
         <label for="input_folder" class="ui icon item">
-          <i class="folder icon"></i>
+          <i class="folder outline icon"></i>
           Select Input Folder
         </label>
         <input type="file" id="input_folder" style="display:none"
@@ -142,7 +141,7 @@
         <div class="divider"></div>
 
         <label for="input_masks" class="ui icon item">
-          <i class="outline images icon"></i>
+          <i class="images icon"></i>
           Select Exclude Masks
         </label>
         <input type="file" id="input_masks" style="display:none" onclick="this.value=null;"
@@ -150,7 +149,7 @@
 
         <div class="divider"></div>
         <label for="training_masks" class="ui icon item">
-          <i class="outline violet images icon"></i>
+          <i class="violet images icon"></i>
           Select Training Masks
         </label>
         <input type="file" id="training_masks" style="display:none" onclick="this.value=null;"

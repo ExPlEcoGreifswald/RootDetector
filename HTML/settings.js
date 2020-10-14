@@ -55,3 +55,13 @@ function set_training_mode(x){
       $('#retrain-button').hide();
     }
   }
+
+//called when user clicks on the save button in settings to save a retrained model
+function on_save_model(){
+    var newname = $('#settings-new-modelname')[0].value
+    if(newname.length==0){
+      console.log('Name too short!')
+      return;
+    }
+    $.get('/save_model', {newname:newname}).done(load_settings);
+}

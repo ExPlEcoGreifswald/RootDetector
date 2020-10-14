@@ -133,7 +133,11 @@ def retrain(imagefiles, targetfiles):
                               epochs=CONSTANTS.N_EPOCHS,
                               callback=on_train_epoch)
         GLOBALS.current_training_epoch = CONSTANTS.N_EPOCHS
-        #GLOBALS.active_model = ''
+        GLOBALS.active_model = ''
 
 def stop_training():
     GLOBALS.model.stop_training()
+
+def save_model(newname):
+    open(f'models/{newname}.dill', 'wb').write(dill.dumps(GLOBALS.model))
+    GLOBALS.active_model = newname

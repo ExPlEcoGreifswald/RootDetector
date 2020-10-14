@@ -64,5 +64,4 @@ function monitor_training_progress(){
   }).done(function(data)  {
       
   });
-  console.log('Request Sent');
 }

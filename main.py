@@ -135,6 +135,11 @@ def stop_training():
     processing.stop_training()
     return 'OK'
 
+@app.route('/save_model')
+def save_model():
+    processing.save_model(request.args['newname'])
+    return 'OK'
+
 
 is_debug = sys.argv[0].endswith('.py')
 if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not is_debug:  #to avoid flask starting twice
