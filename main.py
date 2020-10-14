@@ -1,4 +1,4 @@
-import webbrowser, os, tempfile, io, sys
+import webbrowser, os, tempfile, io, sys, time
 import flask
 from flask import Flask, escape, request
 
@@ -122,19 +122,18 @@ def start_training():
         print(f'Could not find any of the input files')
         flask.abort(404)
 
+@app.route('/retraining_progress')
+def retraining_progress():
+    def streaming_generator():
+        while processing.get_training_progress() < 1:
+            yield f'({processing.get_training_progress():.3f})'
+            time.sleep(0.5)
+    return flask.Response(streaming_generator(), mimetype='text/csv')
 
-
-
-
-
-@app.route('/streaming')
-def streaming():
-    def generator():
-        import time
-        for i in range(50):
-            time.sleep(0.1)
-            yield f'{i}'
-    return flask.Response(generator(), mimetype='text/csv')
+@app.route('/stop_training')
+def stop_training():
+    processing.stop_training()
+    return 'OK'
 
 
 is_debug = sys.argv[0].endswith('.py')

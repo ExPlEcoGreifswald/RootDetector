@@ -23,21 +23,26 @@ import skimage.io         as skio
 
 
 class GLOBALS:
-#    models              = dict()            #modelname:model
-    active_model        = ''                #modelname
-    model               = None
-    processing_progress = dict()            #filename:percentage
-    processing_lock     = threading.Lock()
+    active_model           = ''                #modelname
+    model                  = None
+    processing_progress    = dict()            #filename:percentage
+    processing_lock        = threading.Lock()
+    current_training_epoch = 0
+
+class CONSTANTS:
+    N_EPOCHS = 5                                           #XXX: 5 epochs for testing only
+
 
 
 
 def init():
     load_settings()
 
-def load_active_model():
-    print('Loading', GLOBALS.active_model)
-    filepath      = os.path.join('models', GLOBALS.active_model+'.dill')
-    GLOBALS.model = dill.load(open(filepath, 'rb'))
+def load_model(name):
+    filepath             = os.path.join('models', name+'.dill')
+    print('Loading model', filepath)
+    GLOBALS.model        = dill.load(open(filepath, 'rb'))
+    GLOBALS.active_model = name
     print('Finished loading', filepath)
 
 def load_image(path):
@@ -81,7 +86,6 @@ def processing_progress(imagename):
 def load_settings():
     settings = json.load(open('settings.json'))
     set_settings(settings)
-    #GLOBALS.active_model = list(GLOBALS.models.keys())[0]
 
 def get_settings():
     modelfiles = glob.glob('models/*.dill')
@@ -92,8 +96,9 @@ def get_settings():
 
 def set_settings(s):
     print('New settings:',s)
-    GLOBALS.active_model       = s.get('active_model')
-    load_active_model()
+    newmodelname = s.get('active_model')
+    if newmodelname != GLOBALS.active_model:
+        load_model(newmodelname)
     json.dump(dict(active_model=GLOBALS.active_model), open('settings.json','w'))
 
 
@@ -116,12 +121,19 @@ def skeletonize(image):
     return skmorph.skeletonize(image>0.5)
 
 def on_train_epoch(e):
-    pass
+    GLOBALS.current_training_epoch = e
+
+def get_training_progress():
+    return (GLOBALS.current_training_epoch+1)/CONSTANTS.N_EPOCHS
 
 def retrain(imagefiles, targetfiles):
     with GLOBALS.processing_lock:
-        #GLOBALS.current_training_epoch = 0
+        GLOBALS.current_training_epoch = -1
         GLOBALS.model.retrain(imagefiles, targetfiles, 
-                              epochs=25,
+                              epochs=CONSTANTS.N_EPOCHS,
                               callback=on_train_epoch)
+        GLOBALS.current_training_epoch = CONSTANTS.N_EPOCHS
         #GLOBALS.active_model = ''
+
+def stop_training():
+    GLOBALS.model.stop_training()

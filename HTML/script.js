@@ -6,7 +6,8 @@ global = {
   cancel_requested : false,   //user requested cancelling either inference or training
   skeletonize      : false,   //whether to show normal or skeletonized segmentations
 
-  settings         : {}
+  settings         : {},
+  active_mode      : 'inference',  //inference or training
 };
 
 
@@ -155,10 +156,10 @@ function process_all(){
   async function loop_body(){
     if(j>=Object.values(global.input_files).length || global.cancel_requested ){
       $button.html('<i class="play icon"></i>Process All Images');
-      $('#cancel-processing-button').hide();
+      $('#cancel-button').hide();
       return;
     }
-    $('#cancel-processing-button').show();
+    $('#cancel-button').show();
     $button.html(`Processing... ${j}/${Object.values(global.input_files).length}`);
 
     f = Object.values(global.input_files)[j];
@@ -172,9 +173,13 @@ function process_all(){
   setTimeout(loop_body, 1);  //using timeout to refresh the html between iterations
 }
 
-//called when user clicks the 'Cancel Processing' button
-function cancel_processing(){
+//called when user clicks the 'Cancel' button
+function on_cancel(){
   global.cancel_requested = true;
+  if(global.active_mode=='training'){
+    $.get('/stop_training');
+    $('#cancel-button').html('<div class="ui active tiny inline loader"></div>Cancelling...');
+  }
 }
 
 
@@ -289,16 +294,3 @@ function set_processed(filename, value){
 }
 
 
-
-
-function ajax_streaming_test(){
-  var last_response_len = false;
-  $.ajax('/streaming', { xhrFields: { onprogress: function(e){
-            console.log(e.currentTarget.response);
-          }
-      }
-  }).done(function(data)  {
-      console.log('Complete response = ' + data);
-  });
-  console.log('Request Sent');
-}

@@ -23,22 +23,46 @@ function on_trainingmasks_select(input){
 
 
 //called when user clicks on the 'Retrain' button
-function on_retrain(){
+async function on_retrain(){
   //collect files with predictions
   var files = Object.values(global.input_files).filter(x => x.processed);
   if(files.length==0)
     return;  //TODO: show message that no files for training are available
   
   console.log(`Training with ${files.length} files`);
+  var $retrain_button = $(`#retrain-button`);
+  $retrain_button.html(`<div class="ui active tiny inline loader"></div> Retraining...`);
 
   //upload input and training mask images
   for(var f of files){
-    upload_file_to_flask('/file_upload', f.file);
-    upload_file_to_flask('/file_upload', f.training_mask);
+    await upload_file_to_flask('/file_upload', f.file);
+    await upload_file_to_flask('/file_upload', f.training_mask);
   }
 
   var filenames = files.map(x => x.name);
-  $.post('/start_training', {'filenames':filenames});
-  $('#cancel-processing-button').show();
+  $.post('/start_training', {'filenames':filenames}).done(()=>{
+    //after training is finished restore the buttons to the original state
+    $retrain_button.html('<i class="redo alternate icon"></i>Retrain');
+    $('#cancel-button').hide();
+    $('#cancel-button').html('<i class="x icon"></i>Cancel');
+  });
+  
+  $('#cancel-button').show();
   global.cancel_requested = false;
+  setTimeout(monitor_training_progress,1000);  //timeout against raceconditions //FIXME: ugly ugly
+}
+
+
+
+function monitor_training_progress(){
+  var $retrain_button = $(`#retrain-button`);
+  $.ajax('/retraining_progress', { xhrFields: { onprogress: function(e){
+            var last_progress = e.currentTarget.response.split(')').reverse()[1].split('(')[1];
+            $retrain_button.html(`<div class="ui active tiny inline loader"></div> Retraining...${Math.round(last_progress*100)}%`);
+          }
+      }
+  }).done(function(data)  {
+      
+  });
+  console.log('Request Sent');
 }
