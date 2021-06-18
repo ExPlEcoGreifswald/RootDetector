@@ -1,4 +1,5 @@
 import webbrowser, os, tempfile, io, sys, time
+import glob, shutil
 import flask
 from flask import Flask, escape, request
 
@@ -30,9 +31,15 @@ PIL.Image.MAX_IMAGE_PIXELS = None #Needed to open large images
 
 
 app        = Flask('DigIT! Root Detector', static_folder=os.path.abspath('./HTML'))
-TEMPFOLDER = tempfile.TemporaryDirectory(prefix='root_detector_')
-print('Temporary Directory: %s'%TEMPFOLDER.name)
 
+TEMPPREFIX = 'root_detector_'
+TEMPFOLDER = tempfile.TemporaryDirectory(prefix=TEMPPREFIX)
+print('Temporary Directory: %s'%TEMPFOLDER.name)
+#delete all previous temporary folders if not cleaned up properly
+for tmpdir in glob.glob( os.path.join(os.path.dirname(TEMPFOLDER.name), TEMPPREFIX+'*') ):
+    if tmpdir != TEMPFOLDER.name:
+        print('Removing ',tmpdir)
+        shutil.rmtree(tmpdir)
 
 
 
@@ -70,8 +77,8 @@ def process_image(imgname):
     skelresult   = processing.skeletonize(result)
     result       = processing.maybe_add_mask(result, fullpath)
     skelresult   = processing.maybe_add_mask(skelresult, fullpath)
-    processing.write_as_png(os.path.join(TEMPFOLDER.name, 'segmented_'+imgname+'.png'), result)
-    processing.write_as_png(os.path.join(TEMPFOLDER.name, 'skeletonized_'+imgname+'.png'), skelresult)
+    processing.write_result_as_png(os.path.join(TEMPFOLDER.name, 'segmented_'+imgname+'.png'), result)
+    processing.write_result_as_png(os.path.join(TEMPFOLDER.name, 'skeletonized_'+imgname+'.png'), skelresult)
     return flask.jsonify({'labels':[]})
 
 @app.route('/processing_progress/<imgname>')
@@ -114,7 +121,6 @@ def start_training():
     imagefiles  = [fname for fname in imagefiles if os.path.exists(fname)]
     targetfiles = [os.path.splitext(fname)[0]+'.png'   for fname in imagefiles]
     imagefiles  = [imgf  for imgf,tgtf in zip(imagefiles, targetfiles) if os.path.exists(tgtf)]
-    jsonfiles   = [tgtf  for tgtf      in targetfiles                  if os.path.exists(tgtf)]
     if len(imagefiles)>0:
         processing.retrain(imagefiles, targetfiles)
         return 'OK'

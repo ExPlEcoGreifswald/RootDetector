@@ -25,7 +25,7 @@ function on_trainingmasks_select(input){
 //called when user clicks on the 'Retrain' button
 async function on_retrain(){
   //collect files with predictions
-  var files = Object.values(global.input_files).filter(x => x.processed);
+  var files = Object.values(global.input_files).filter(x => (x.training_mask!=undefined) );
   if(files.length==0)
     return;  //TODO: show message that no files for training are available
   
@@ -45,8 +45,8 @@ async function on_retrain(){
     $retrain_button.html('<i class="redo alternate icon"></i>Retrain');
     $('#cancel-button').hide();
     $('#cancel-button').html('<i class="x icon"></i>Cancel');
-  });
-  
+  }).fail( () => {console.log("Retraining request failed");} );
+
   $('#cancel-button').show();
   global.cancel_requested = false;
   setTimeout(monitor_training_progress,1000);  //timeout against raceconditions //FIXME: ugly ugly

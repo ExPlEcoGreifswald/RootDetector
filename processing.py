@@ -20,6 +20,9 @@ print('Keras version: %s'%keras.__version__)
 import skimage.measure    as skmeasure
 import skimage.morphology as skmorph
 import skimage.io         as skio
+import skimage.util       as skimgutil
+
+#tools = __import__('012c_model') #no need to import, enough if the file is present
 
 
 class GLOBALS:
@@ -64,6 +67,15 @@ def write_as_png(path,x):
     x = x*255 if tf.reduce_max(x)<=1 else x
     tf.io.write_file(path, tf.image.encode_png(  tf.cast(x, tf.uint8)  ))
 
+def write_result_as_png(path, x):
+    x = np.asarray(x, 'float32')
+    x = x[...,np.newaxis] if len(x.shape)==2 else x
+    WHITE = (1.,1.,1.)
+    RED   = (1.,0.,0.)
+    x = (x==1) * WHITE   +  (x==2) * RED
+    return write_as_png(path, x)
+
+
 def write_as_jpeg(path,x):
     x = tf.cast(x, tf.float32)
     x = x[...,tf.newaxis] if len(x.shape)==2 else x
@@ -105,20 +117,26 @@ def set_settings(s):
 def maybe_add_mask(image, input_image_path):
     '''Looks for a file with prefix "mask_" in the same directory as input_image_path,
        if it exists, blends it with image'''
-
+    if len(image.shape)>2:
+        image = image[...,0]
     basename = os.path.splitext(os.path.basename(input_image_path))[0]
     pattern  = os.path.join( os.path.dirname(input_image_path), 'mask_'+basename+'*.png' )
     masks    = glob.glob(pattern)
     if len(masks)==1:
         mask          = skio.imread(masks[0])[...,:3]
-        image_rgb     = np.stack([image]*3, axis=-1)*np.uint8(255)
+        mask          = skimgutil.img_as_float32(mask)
+        image_rgb     = np.stack([image]*3, axis=-1)
         masked_image  = np.where( np.any(mask, axis=-1, keepdims=True)>0, mask, image_rgb )
         return masked_image
     #else
     return image
 
 def skeletonize(image):
-    return skmorph.skeletonize(image>0.5)
+    if len(image.shape)>2:
+        image = image[...,0]
+    skel = skmorph.skeletonize(image==1)
+    skel = np.where(image>1, image, skel)
+    return skel
 
 def on_train_epoch(e):
     GLOBALS.current_training_epoch = e

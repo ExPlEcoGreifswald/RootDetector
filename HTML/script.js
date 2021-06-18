@@ -63,10 +63,11 @@ function on_inputfolder_select(input){
 }
 
 //sends an image and mark it as an exclusion mask
-function upload_mask(file){
+function upload_mask(inputfilename){
+  var maskfile = global.input_files[inputfilename].mask;
   var formData = new FormData();
-  formData.append('files', file );
-  formData.append('filename', 'mask_'+file.name );
+  formData.append('files', maskfile );
+  formData.append('filename', `mask_${filebasename(inputfilename)}.png` );
   result = $.ajax({
       url: 'file_upload',      type: 'POST',
       data: formData,          async: false,
@@ -103,7 +104,8 @@ function process_file(filename){
 
   upload_file_to_flask('/file_upload', global.input_files[filename].file);
   if(!!global.input_files[filename].mask)
-    upload_mask(global.input_files[filename].mask);
+    //upload_mask(global.input_files[filename].mask);
+    upload_mask(filename);
   
   //send a processing request to python update gui with the results
   return $.get(`/process_image/${filename}`).done(function(data){
@@ -246,6 +248,17 @@ function set_skeletonized(x){
 }
 
 
+
+function wildcard_test(wildcard_pattern, str) {
+  //string comparison with wildcard characters * and ~
+  //https://stackoverflow.com/questions/26246601/wildcard-string-comparison-in-javascript
+  let w = wildcard_pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&'); // regexp escape 
+      w = w.replace(/~/g,'*');                                   //allow ~ as wildcard (for windows paths)
+  const re = new RegExp(`^${w.replace(/\*/g,'.*').replace(/\?/g,'.')}$`,'i');
+  return re.test(str); // remove last 'i' above to have case sensitive
+}
+
+
 //called when user selected exclusion masks (in the 'File' menu)
 function on_inputmasks_select(input){
   console.log(input);
@@ -254,7 +267,8 @@ function on_inputmasks_select(input){
     var maskbasename = filebasename(maskfile.name);
 
     for(inputfile of Object.values(global.input_files)){
-      if(filebasename(inputfile.name) == maskbasename){
+      //if(filebasename(inputfile.name) == maskbasename){
+      if( wildcard_test(maskbasename, filebasename(inputfile.name)) ){
         console.log('Matched mask for input file ',inputfile.name);
 
         //indicate in the file table that a mask is available with a red plus icon
