@@ -1,3 +1,10 @@
+const SETTINGS = {
+  active_model : '',         //root segmentation model
+  exmask_model : '',         //exclusion mask model
+  exmask_enabled : false,
+}
+
+
 
 global = {
   input_files      : {},      //{"banana.JPG": FILE}
@@ -6,9 +13,10 @@ global = {
   cancel_requested : false,   //user requested cancelling either inference or training
   skeletonize      : false,   //whether to show normal or skeletonized segmentations
 
-  settings         : {},
-  active_mode      : 'inference',  //inference or training
+  settings         : deepcopy(SETTINGS),  //settings that are saved to file (but also some more)
+  active_mode      : 'inference',         //inference or training
 };
+
 
 
 const FILE = {name:          '',
@@ -17,6 +25,12 @@ const FILE = {name:          '',
               mask:          undefined,    //javascript file object (optional)
               training_mask: undefined,    //javascript file object (optional)
 };
+
+
+
+
+
+
 
 
 function init(){

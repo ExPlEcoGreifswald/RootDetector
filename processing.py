@@ -27,7 +27,11 @@ import skimage.util       as skimgutil
 
 class GLOBALS:
     active_model           = ''                #modelname
-    model                  = None
+    model                  = None              #TF model
+    exmask_enabled         = False
+    exmask_active_model    = ''                #modelname
+    exmask_model           = None              #TF model
+
     processing_progress    = dict()            #filename:percentage
     processing_lock        = threading.Lock()
     current_training_epoch = 0
@@ -42,11 +46,21 @@ def init():
     load_settings()
 
 def load_model(name):
+    '''Loads the root segmentation model'''
     filepath             = os.path.join('models', name+'.dill')
     print('Loading model', filepath)
     GLOBALS.model        = dill.load(open(filepath, 'rb'))
     GLOBALS.active_model = name
     print('Finished loading', filepath)
+
+def load_exmask_model(name):
+    '''Loads the exclusion mask model'''
+    filepath                    = os.path.join('exclusionmask_models', name+'.dill')
+    print('Loading model', filepath)
+    GLOBALS.exmask_model        = dill.load(open(filepath, 'rb'))
+    GLOBALS.exmask_active_model = name
+    print('Finished loading', filepath)
+
 
 def load_image(path):
     x = GLOBALS.model.load_image(path)
@@ -54,11 +68,24 @@ def load_image(path):
     x = x[...,:3]
     return x
 
-
-def process_image(image, progress_callback=None):
+def process_image(image_path, do_skeletonize=True, search_for_mask=True):
+    basename      = os.path.basename(image_path)
+    output_folder = os.path.dirname(image_path)
+    image         = load_image(image_path)
     with GLOBALS.processing_lock:
-        print('Processing file with model', GLOBALS.active_model)
-        return GLOBALS.model.process_image(image, progress_callback=progress_callback)
+        segmentation_result = GLOBALS.model.process_image(image, progress_callback=progress_callback_for_image(basename))
+        if GLOBALS.exmask_enabled:
+            exmask_result = GLOBALS.exmask_model.process_image(image, progress_callback=progress_callback_for_image(basename))
+            segmentation_result = paste_exmask(segmentation_result, exmask_result)
+    if do_skeletonize:
+        skelresult   = skeletonize(segmentation_result)
+    if search_for_mask:
+        result       = search_and_add_mask(segmentation_result, image_path)
+        skelresult   = search_and_add_mask(skelresult, image_path)
+    write_result_as_png(os.path.join(output_folder, f'segmented_{basename}.png'), result)
+    write_result_as_png(os.path.join(output_folder, f'skeletonized_{basename}.png'), skelresult)
+
+
 
 
 def write_as_png(path,x):
@@ -102,8 +129,15 @@ def load_settings():
 def get_settings():
     modelfiles = glob.glob('models/*.dill')
     modelnames = [os.path.splitext(os.path.basename(fname))[0] for fname in modelfiles]
-    s = dict( models       = modelnames,
-              active_model = GLOBALS.active_model )
+    exmask_modelfiles = glob.glob('exclusionmask_models/*.dill')
+    exmask_modelnames = [os.path.splitext(os.path.basename(fname))[0] for fname in exmask_modelfiles]
+    s = dict(
+        models         = modelnames,
+        active_model   = GLOBALS.active_model,
+        exmask_enabled        = GLOBALS.exmask_enabled,
+        exmask_models         = exmask_modelnames,              #available exmask-models
+        exmask_active_model   = GLOBALS.exmask_active_model,    #active exmask-model
+    )
     return s
 
 def set_settings(s):
@@ -111,10 +145,22 @@ def set_settings(s):
     newmodelname = s.get('active_model')
     if newmodelname != GLOBALS.active_model:
         load_model(newmodelname)
-    json.dump(dict(active_model=GLOBALS.active_model), open('settings.json','w'))
+    GLOBALS.exmask_enabled      = s.get('exmask_enabled', GLOBALS.exmask_enabled)
+    if s.get('exmask_model') != GLOBALS.exmask_active_model:
+        load_exmask_model(s.get('exmask_model'))
+    json.dump(dict(
+        active_model   = GLOBALS.active_model,
+        exmask_enabled = GLOBALS.exmask_enabled,
+        exmask_model   = GLOBALS.exmask_active_model,
+    ), open('settings.json','w'))
 
 
-def maybe_add_mask(image, input_image_path):
+def paste_exmask(segmask, exmask):
+    exmask     = exmask.squeeze()
+    TAPE_VALUE = 2
+    return np.where(exmask>0, TAPE_VALUE, segmask)
+
+def search_and_add_mask(image, input_image_path):
     '''Looks for a file with prefix "mask_" in the same directory as input_image_path,
        if it exists, blends it with image'''
     if len(image.shape)>2:

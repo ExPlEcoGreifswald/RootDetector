@@ -72,13 +72,14 @@ def images(imgname):
 @app.route('/process_image/<imgname>')
 def process_image(imgname):
     fullpath     = os.path.join(TEMPFOLDER.name, imgname)
-    image        = processing.load_image(fullpath)
+    processing.process_image( fullpath, do_skeletonize=True, search_for_mask=True )
+    """image        = processing.load_image(fullpath)
     result       = processing.process_image(image, processing.progress_callback_for_image(imgname))
     skelresult   = processing.skeletonize(result)
     result       = processing.maybe_add_mask(result, fullpath)
     skelresult   = processing.maybe_add_mask(skelresult, fullpath)
     processing.write_result_as_png(os.path.join(TEMPFOLDER.name, 'segmented_'+imgname+'.png'), result)
-    processing.write_result_as_png(os.path.join(TEMPFOLDER.name, 'skeletonized_'+imgname+'.png'), skelresult)
+    processing.write_result_as_png(os.path.join(TEMPFOLDER.name, 'skeletonized_'+imgname+'.png'), skelresult)"""
     return flask.jsonify({'labels':[]})
 
 @app.route('/processing_progress/<imgname>')
@@ -94,21 +95,11 @@ def delete_image(imgname):
         os.remove(fullpath)
     return 'OK'
 
-@app.route('/custom_patch/<imgname>')
-def custom_patch(imgname):
-    y,x      = float(request.args.get('y')), float(request.args.get('x'))
-    index    = int(request.args.get('index'))
-    print('CUSTOM PATCH: %s @yx=%.3f,%.3f'%(imgname, y,x))
-    fullpath = os.path.join(TEMPFOLDER.name, imgname)
-    image    = processing.load_image(fullpath)
-    patch    = processing.extract_patch(image, (y,x))
-    processing.write_as_jpeg(os.path.join(TEMPFOLDER.name, 'patch_%i_%s'%(index,imgname)), patch)
-    return 'OK'
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
     if request.method=='POST':
-        processing.set_settings(request.args)
+        processing.set_settings(request.get_json(force=True))
         return 'OK'
     elif request.method=='GET':
         return flask.jsonify(processing.get_settings())
