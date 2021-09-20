@@ -24,6 +24,7 @@ const FILE = {name:          '',
               processed:     false,
               mask:          undefined,    //javascript file object (optional)
               training_mask: undefined,    //javascript file object (optional)
+              statistics:    undefined,    //dict e.g: {"sum":9999, ...}
 };
 
 
@@ -104,7 +105,6 @@ function process_file(filename){
 
   function progress_polling(){
     $.get(`/processing_progress/${filename}`, function(data) {
-        //console.log(filename, data);
         if(!global.input_files[filename].processed){
           $process_button = $(`.ui.primary.button[filename="${filename}"]`);
           $process_button.html(`<div class="ui active tiny inline loader"></div> Processing...${Math.round(data*100)}%`);
@@ -124,6 +124,7 @@ function process_file(filename){
   //send a processing request to python update gui with the results
   return $.get(`/process_image/${filename}`).done(function(data){
       set_processed(filename, true);
+      global.input_files[filename].statistics = data.statistics;
       
       var url = src_url_for_segmented_image(filename);
       $(`[filename="${filename}"]`).find('img.segmented').attr('src', url);
@@ -160,7 +161,7 @@ function on_accordion_open(x){
   //document.getElementById(`image_${filename}`).onload = function(){magnify(`image_${filename}`)};
 }
 
-//called when user clicks the 'Process' button
+//called when user clicks the (single image) 'Process' button
 function on_process_image(e){
   var filename = $(e.target).closest('[filename]').attr('filename');
   process_file(filename);
@@ -202,38 +203,6 @@ function on_cancel(){
 
 
 
-
-function downloadURI(uri, name) 
-{
-    var link = document.createElement("a");
-    // If you don't know the name or want to use
-    // the webserver default set name = ''
-    link.setAttribute('download', name);
-    link.href = uri;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-}
-
-//called when user clicks on the download button; downloads all segmented images
-async function on_download_processed(){
-  if(Object.keys(global.input_files).length==0){
-    $('#download-processed-button').popup({on       : 'manual',
-                                     position : 'bottom right',
-                                     delay    : {'show':0, 'hide':0}, duration:0,
-                                     content  : 'Nothing to download'}).popup('show');
-    return;
-  }
-
-  for(f in global.input_files){
-    if(global.input_files[f].processed){
-      processed_f = $(`[filename="${f}"]`).find('img.segmented').attr('src');
-      downloadURI(processed_f, '');
-      //sleep for a few milliseconds because chrome does not allow more than 10 simulataneous downloads
-      await new Promise(resolve => setTimeout(resolve, 250));
-    }
-  }
-}
 
 
 

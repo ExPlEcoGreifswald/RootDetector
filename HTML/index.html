@@ -10,6 +10,7 @@
   <script src="/static/util.js"></script>
   <script src="/static/settings.js"></script>
   <script src="/static/retraining.js"></script>
+  <script src="/static/downloads.js"></script>
   <script src="/static/script.js"></script>
 
   <script src="/static/thirdparty/exif-js"></script>
@@ -178,11 +179,19 @@
     <div class="ui secondary right menu">
       <div class="item">
         <div class="ui buttons">
-        <label class="ui button" onclick="on_download_processed()"
-              id="download-processed-button" data-tooltip="Download Processed Files" 
-              data-position="bottom right">
+        
+        <label class="ui icon button right floated column" id="download-button" data-position="bottom right">
           <i class="download icon"></i>
         </label>
+        <div class="ui popup transition hidden vertical menu" style="padding:0">
+            <a class="item" onclick="on_download_processed()"     id="download-processed-button"     
+              style="align-self:auto;margin:0px"> Download Segmented Images</a>
+            <a class="item" onclick="on_download_csv()" id="download-csv-button" 
+              style="align-self:auto;margin:0px">
+              Download Statistics</a>
+        </div>
+        <script>$('#download-button').popup({hoverable:true});</script>
+
         <label class="ui button" onclick="on_settings()"
               id="settings-button" data-tooltip="Settings" data-position="bottom center">
           <i class="wrench icon"></i>

@@ -17,10 +17,10 @@ K = keras.backend
 print('TensorFlow version: %s'%tf.__version__)
 print('Keras version: %s'%keras.__version__)
 
-import skimage.measure    as skmeasure
-import skimage.morphology as skmorph
 import skimage.io         as skio
 import skimage.util       as skimgutil
+
+import postprocessing
 
 #tools = __import__('012c_model') #no need to import, enough if the file is present
 
@@ -69,6 +69,7 @@ def load_image(path):
     return x
 
 def process_image(image_path, do_skeletonize=True, search_for_mask=True):
+    #TODO: remove do_skeletonize parameter
     basename      = os.path.basename(image_path)
     output_folder = os.path.dirname(image_path)
     image         = load_image(image_path)
@@ -78,14 +79,15 @@ def process_image(image_path, do_skeletonize=True, search_for_mask=True):
             exmask_result = GLOBALS.exmask_model.process_image(image, progress_callback=progress_callback_for_image(basename))
             segmentation_result = paste_exmask(segmentation_result, exmask_result)
     if do_skeletonize:
-        skelresult   = skeletonize(segmentation_result)
+        skelresult   = postprocessing.skeletonize(segmentation_result)
     if search_for_mask:
         result       = search_and_add_mask(segmentation_result, image_path)
         skelresult   = search_and_add_mask(skelresult, image_path)
     write_result_as_png(os.path.join(output_folder, f'segmented_{basename}.png'), result)
     write_result_as_png(os.path.join(output_folder, f'skeletonized_{basename}.png'), skelresult)
 
-
+    stats = postprocessing.compute_statistics(result, skelresult)
+    return stats
 
 
 def write_as_png(path,x):
@@ -176,13 +178,6 @@ def search_and_add_mask(image, input_image_path):
         return masked_image
     #else
     return image
-
-def skeletonize(image):
-    if len(image.shape)>2:
-        image = image[...,0]
-    skel = skmorph.skeletonize(image==1)
-    skel = np.where(image>1, image, skel)
-    return skel
 
 def on_train_epoch(e):
     GLOBALS.current_training_epoch = e

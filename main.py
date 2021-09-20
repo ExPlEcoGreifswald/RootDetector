@@ -1,5 +1,8 @@
 import webbrowser, os, tempfile, io, sys, time
 import glob, shutil
+import warnings
+warnings.simplefilter('ignore')
+
 import flask
 from flask import Flask, escape, request
 
@@ -23,8 +26,6 @@ import sklearn.utils           as skutils
 
 import PIL
 PIL.Image.MAX_IMAGE_PIXELS = None #Needed to open large images
-
-#import util
 
 
 
@@ -71,16 +72,9 @@ def images(imgname):
 
 @app.route('/process_image/<imgname>')
 def process_image(imgname):
-    fullpath     = os.path.join(TEMPFOLDER.name, imgname)
-    processing.process_image( fullpath, do_skeletonize=True, search_for_mask=True )
-    """image        = processing.load_image(fullpath)
-    result       = processing.process_image(image, processing.progress_callback_for_image(imgname))
-    skelresult   = processing.skeletonize(result)
-    result       = processing.maybe_add_mask(result, fullpath)
-    skelresult   = processing.maybe_add_mask(skelresult, fullpath)
-    processing.write_result_as_png(os.path.join(TEMPFOLDER.name, 'segmented_'+imgname+'.png'), result)
-    processing.write_result_as_png(os.path.join(TEMPFOLDER.name, 'skeletonized_'+imgname+'.png'), skelresult)"""
-    return flask.jsonify({'labels':[]})
+    fullpath  = os.path.join(TEMPFOLDER.name, imgname)
+    stats     = processing.process_image( fullpath, do_skeletonize=True, search_for_mask=True )
+    return flask.jsonify({'statistics':stats})
 
 @app.route('/processing_progress/<imgname>')
 def processing_progress(imgname):
