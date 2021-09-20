@@ -68,8 +68,7 @@ def load_image(path):
     x = x[...,:3]
     return x
 
-def process_image(image_path, do_skeletonize=True, search_for_mask=True):
-    #TODO: remove do_skeletonize parameter
+def process_image(image_path):
     basename      = os.path.basename(image_path)
     output_folder = os.path.dirname(image_path)
     image         = load_image(image_path)
@@ -78,31 +77,37 @@ def process_image(image_path, do_skeletonize=True, search_for_mask=True):
         if GLOBALS.exmask_enabled:
             exmask_result = GLOBALS.exmask_model.process_image(image, progress_callback=progress_callback_for_image(basename))
             segmentation_result = paste_exmask(segmentation_result, exmask_result)
-    if do_skeletonize:
-        skelresult   = postprocessing.skeletonize(segmentation_result)
-    if search_for_mask:
-        result       = search_and_add_mask(segmentation_result, image_path)
-        skelresult   = search_and_add_mask(skelresult, image_path)
-    write_result_as_png(os.path.join(output_folder, f'segmented_{basename}.png'), result)
-    write_result_as_png(os.path.join(output_folder, f'skeletonized_{basename}.png'), skelresult)
+    
+    skelresult   = postprocessing.skeletonize(segmentation_result)
+    mask         = search_mask(image_path)
 
-    stats = postprocessing.compute_statistics(result, skelresult)
+    stats        = postprocessing.compute_statistics(segmentation_result, skelresult, mask)
+
+    result       = result_to_rgb(segmentation_result)
+    skelresult   = result_to_rgb(skelresult)
+
+    if mask is not None:
+        result       = add_mask(result, mask)
+        skelresult   = add_mask(skelresult, mask)
+
+    write_as_png(os.path.join(output_folder, f'segmented_{basename}.png'), result)
+    write_as_png(os.path.join(output_folder, f'skeletonized_{basename}.png'), skelresult)
+
     return stats
 
+def result_to_rgb(x):
+    assert len(x.shape)==2
+    x     = x[...,np.newaxis]
+    WHITE = (1.,1.,1.)
+    RED   = (1.,0.,0.)
+    x     = (x==1) * WHITE   +  (x==2) * RED
+    return x
 
 def write_as_png(path,x):
     x = tf.cast(x, tf.float32)
     x = x[...,tf.newaxis] if len(x.shape)==2 else x
     x = x*255 if tf.reduce_max(x)<=1 else x
     tf.io.write_file(path, tf.image.encode_png(  tf.cast(x, tf.uint8)  ))
-
-def write_result_as_png(path, x):
-    x = np.asarray(x, 'float32')
-    x = x[...,np.newaxis] if len(x.shape)==2 else x
-    WHITE = (1.,1.,1.)
-    RED   = (1.,0.,0.)
-    x = (x==1) * WHITE   +  (x==2) * RED
-    return write_as_png(path, x)
 
 
 def write_as_jpeg(path,x):
@@ -162,22 +167,19 @@ def paste_exmask(segmask, exmask):
     TAPE_VALUE = 2
     return np.where(exmask>0, TAPE_VALUE, segmask)
 
-def search_and_add_mask(image, input_image_path):
-    '''Looks for a file with prefix "mask_" in the same directory as input_image_path,
-       if it exists, blends it with image'''
-    if len(image.shape)>2:
-        image = image[...,0]
+def search_mask(input_image_path):
+    '''Looks for a file with prefix "mask_" in the same directory as input_image_path'''
     basename = os.path.splitext(os.path.basename(input_image_path))[0]
     pattern  = os.path.join( os.path.dirname(input_image_path), 'mask_'+basename+'*.png' )
     masks    = glob.glob(pattern)
     if len(masks)==1:
-        mask          = skio.imread(masks[0])[...,:3]
-        mask          = skimgutil.img_as_float32(mask)
-        image_rgb     = np.stack([image]*3, axis=-1)
-        masked_image  = np.where( np.any(mask, axis=-1, keepdims=True)>0, mask, image_rgb )
-        return masked_image
-    #else
-    return image
+        m = skio.imread(masks[0])[...,:3]
+        m = skimgutil.img_as_float32(m)
+        return m
+
+def add_mask(image_rgb, mask):
+    masked_image  = np.where( np.any(mask, axis=-1, keepdims=True)>0, mask, image_rgb )
+    return masked_image
 
 def on_train_epoch(e):
     GLOBALS.current_training_epoch = e

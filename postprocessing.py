@@ -8,11 +8,20 @@ import scipy.ndimage
 
 
 
-def compute_statistics(result, skeletonized_result):
+def compute_statistics(result, skeletonized_result, mask=None):
+    if mask is None:
+        mask = np.zeros(result.shape[:2], dtype='bool')
+    elif len(mask.shape)>2:
+        mask = np.any(mask, axis=-1)
+    mask                = (mask > 0) | (result==2)
+    result              = np.where(mask, 2, result)
+    skeletonized_result = np.where(mask, 2, skeletonized_result)
+
     N_neg               = (result == 0).sum()
     N_mask              = (result == 2).sum()
-    result              = (result == 1)
+    result              = (result              == 1)
     skeletonized_result = (skeletonized_result == 1)*1
+
     N_o    = compute_orthogonal_connections(skeletonized_result)
     N_d    = compute_diagonal_connections(skeletonized_result)
     kimura = kimura_length(N_o, N_d)

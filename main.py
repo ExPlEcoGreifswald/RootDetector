@@ -73,7 +73,7 @@ def images(imgname):
 @app.route('/process_image/<imgname>')
 def process_image(imgname):
     fullpath  = os.path.join(TEMPFOLDER.name, imgname)
-    stats     = processing.process_image( fullpath, do_skeletonize=True, search_for_mask=True )
+    stats     = processing.process_image( fullpath )
     return flask.jsonify({'statistics':stats})
 
 @app.route('/processing_progress/<imgname>')
