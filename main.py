@@ -15,14 +15,8 @@ import tensorflow.keras as keras
 import numpy as np
 arange = np.arange
 import skimage.io              as skio
-import skimage.draw            as skdraw
-import skimage.transform       as sktransform
-import skimage.measure         as skmeasure
 import skimage.morphology      as skmorph
 import skimage.util            as skimgutil
-import sklearn.svm             as sksvm
-import sklearn.model_selection as skms
-import sklearn.utils           as skutils
 
 import PIL
 PIL.Image.MAX_IMAGE_PIXELS = None #Needed to open large images
@@ -33,14 +27,15 @@ PIL.Image.MAX_IMAGE_PIXELS = None #Needed to open large images
 
 app        = Flask('DigIT! Root Detector', static_folder=os.path.abspath('./HTML'))
 
-TEMPPREFIX = 'root_detector_'
-TEMPFOLDER = tempfile.TemporaryDirectory(prefix=TEMPPREFIX)
-print('Temporary Directory: %s'%TEMPFOLDER.name)
-#delete all previous temporary folders if not cleaned up properly
-for tmpdir in glob.glob( os.path.join(os.path.dirname(TEMPFOLDER.name), TEMPPREFIX+'*') ):
-    if tmpdir != TEMPFOLDER.name:
-        print('Removing ',tmpdir)
-        shutil.rmtree(tmpdir)
+if os.environ.get('WERKZEUG_RUN_MAIN')=='true':
+    TEMPPREFIX = 'root_detector_'
+    TEMPFOLDER = tempfile.TemporaryDirectory(prefix=TEMPPREFIX)
+    print('Temporary Directory: %s'%TEMPFOLDER.name)
+    #delete all previous temporary folders if not cleaned up properly
+    for tmpdir in glob.glob( os.path.join(os.path.dirname(TEMPFOLDER.name), TEMPPREFIX+'*') ):
+        if tmpdir != TEMPFOLDER.name:
+            print('Removing ',tmpdir)
+            shutil.rmtree(tmpdir)
 
 
 
@@ -67,7 +62,6 @@ def file_upload():
 
 @app.route('/images/<imgname>')
 def images(imgname):
-    print('Download: %s'%os.path.join(TEMPFOLDER.name, imgname))
     return flask.send_from_directory(TEMPFOLDER.name, imgname)
 
 @app.route('/process_image/<imgname>')

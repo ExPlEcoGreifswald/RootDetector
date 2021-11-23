@@ -1,6 +1,4 @@
 import os
-#restrict gpu usage
-os.environ["CUDA_VISIBLE_DEVICES"]=""
 
 import glob
 import dill

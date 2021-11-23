@@ -157,8 +157,6 @@ function on_accordion_open(x){
     if(!global.input_files[filename].processed)
       contentdiv.find('.ui.dimmer').dimmer({'closable':false}).dimmer('show');
   });
-
-  //document.getElementById(`image_${filename}`).onload = function(){magnify(`image_${filename}`)};
 }
 
 //called when user clicks the (single image) 'Process' button
