@@ -20,7 +20,6 @@ import skimage.util       as skimgutil
 
 import postprocessing
 
-#tools = __import__('012c_model') #no need to import, enough if the file is present
 
 
 class GLOBALS:
@@ -32,10 +31,7 @@ class GLOBALS:
 
     processing_progress    = dict()            #filename:percentage
     processing_lock        = threading.Lock()
-    current_training_epoch = 0
 
-class CONSTANTS:
-    N_EPOCHS = 15
 
 
 
@@ -53,7 +49,7 @@ def load_model(name):
 
 def load_exmask_model(name):
     '''Loads the exclusion mask model'''
-    filepath                    = os.path.join('exclusionmask_models', name+'.dill')
+    filepath                    = os.path.join('models/exclusionmask_models', name+'.dill')
     print('Loading model', filepath)
     GLOBALS.exmask_model        = dill.load(open(filepath, 'rb'))
     GLOBALS.exmask_active_model = name
@@ -134,7 +130,7 @@ def load_settings():
 def get_settings():
     modelfiles = glob.glob('models/*.dill')
     modelnames = [os.path.splitext(os.path.basename(fname))[0] for fname in modelfiles]
-    exmask_modelfiles = glob.glob('exclusionmask_models/*.dill')
+    exmask_modelfiles = glob.glob('models/exclusionmask_models/*.dill')
     exmask_modelnames = [os.path.splitext(os.path.basename(fname))[0] for fname in exmask_modelfiles]
     s = dict(
         models         = modelnames,
@@ -179,24 +175,3 @@ def add_mask(image_rgb, mask):
     masked_image  = np.where( np.any(mask, axis=-1, keepdims=True)>0, mask, image_rgb )
     return masked_image
 
-def on_train_epoch(e):
-    GLOBALS.current_training_epoch = e
-
-def get_training_progress():
-    return (GLOBALS.current_training_epoch+1)/CONSTANTS.N_EPOCHS
-
-def retrain(imagefiles, targetfiles):
-    with GLOBALS.processing_lock:
-        GLOBALS.current_training_epoch = -1
-        GLOBALS.model.retrain(imagefiles, targetfiles, 
-                              epochs=CONSTANTS.N_EPOCHS,
-                              callback=on_train_epoch)
-        GLOBALS.current_training_epoch = CONSTANTS.N_EPOCHS
-        GLOBALS.active_model = ''
-
-def stop_training():
-    GLOBALS.model.stop_training()
-
-def save_model(newname):
-    open(f'models/{newname}.dill', 'wb').write(dill.dumps(GLOBALS.model))
-    GLOBALS.active_model = newname

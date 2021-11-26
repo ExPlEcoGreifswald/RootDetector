@@ -17,7 +17,7 @@ function save_settings(_){
   
     var skeletonize  = $("#settings-skeletonize").checkbox('is checked');
     set_skeletonized(skeletonize);
-    set_training_mode($('#settings-enable-retraining').checkbox('is checked'));
+    //set_training_mode($('#settings-enable-retraining').checkbox('is checked'));
 
     //do not close the dialog, doing this manually
     return false;

@@ -9,7 +9,6 @@
 
   <script src="/static/util.js"></script>
   <script src="/static/settings.js"></script>
-  <script src="/static/retraining.js"></script>
   <script src="/static/downloads.js"></script>
   <script src="/static/script.js"></script>
 
@@ -249,8 +248,8 @@
         <i class="dropdown icon"></i>
         <div class="default text">Segmentation model</div>
         <div class="menu">
-          <!--<div class="item" data-value="1">20200527_alnus_vessels</div>
-          <div class="item" data-value="0">20200522_conifer</div>-->
+          <!--<div class="item" data-value="1">model_1</div>
+          <div class="item" data-value="0">model_2</div>-->
         </div>
       </div>
     </div>
@@ -272,30 +271,9 @@
         <i class="dropdown icon"></i>
         <div class="default text">Exclusion mask model</div>
         <div class="menu">
-          <!--<div class="item" data-value="1">20200527_alnus_vessels</div>
-          <div class="item" data-value="0">20200522_conifer</div>-->
+          <!--<div class="item" data-value="1">model_1</div>
+          <div class="item" data-value="0">model_2</div>-->
         </div>
-      </div>
-    </div>
-
-    <div class="ui divider"></div>
-
-    <div class="field">
-      <label>Retraining</label>
-      <div class="ui toggle checkbox" id="settings-enable-retraining">
-        <input type="checkbox" >
-        <label>Enable retraining</label>
-      </div>
-    </div>
-
-    <div class="field" id="settings-new-modelname-field">
-      <label>Save retrained model</label>
-      <div class="ui action input">
-        <input type="text" placeholder="New model name" id="settings-new-modelname">
-        <button class="ui violet right labeled icon button" onclick="on_save_model()">
-          <i class="save icon"></i>
-          Save Model
-        </button>
       </div>
     </div>
 

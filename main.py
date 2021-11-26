@@ -93,38 +93,6 @@ def settings():
         return flask.jsonify(processing.get_settings())
 
 
-@app.route('/start_training', methods=['POST'])
-def start_training():
-    imagefiles  = dict(request.form.lists())['filenames[]']
-    imagefiles  = [os.path.join(TEMPFOLDER.name, fname) for fname in imagefiles]
-    imagefiles  = [fname for fname in imagefiles if os.path.exists(fname)]
-    targetfiles = [os.path.splitext(fname)[0]+'.png'   for fname in imagefiles]
-    imagefiles  = [imgf  for imgf,tgtf in zip(imagefiles, targetfiles) if os.path.exists(tgtf)]
-    if len(imagefiles)>0:
-        processing.retrain(imagefiles, targetfiles)
-        return 'OK'
-    else:
-        print(f'Could not find any of the input files')
-        flask.abort(404)
-
-@app.route('/retraining_progress')
-def retraining_progress():
-    def streaming_generator():
-        while processing.get_training_progress() < 1:
-            yield f'({processing.get_training_progress():.3f})'
-            time.sleep(0.5)
-    return flask.Response(streaming_generator(), mimetype='text/csv')
-
-@app.route('/stop_training')
-def stop_training():
-    processing.stop_training()
-    return 'OK'
-
-@app.route('/save_model')
-def save_model():
-    processing.save_model(request.args['newname'])
-    return 'OK'
-
 
 is_debug = sys.argv[0].endswith('.py')
 if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not is_debug:  #to avoid flask starting twice
