@@ -7,10 +7,11 @@ import flask
 from flask import Flask, escape, request
 
 import processing
+from backend import root_tracking
 
 #need to import all the packages here in the main file because of dill-ed ipython model
-import tensorflow as tf
-import tensorflow.keras as keras
+#import tensorflow as tf
+#import tensorflow.keras as keras
 
 import numpy as np
 arange = np.arange
@@ -27,7 +28,8 @@ PIL.Image.MAX_IMAGE_PIXELS = None #Needed to open large images
 
 app        = Flask('DigIT! Root Detector', static_folder=os.path.abspath('./HTML'))
 
-if os.environ.get('WERKZEUG_RUN_MAIN')=='true':
+is_debug = sys.argv[0].endswith('.py')
+if os.environ.get('WERKZEUG_RUN_MAIN')=='true' or not is_debug:
     TEMPPREFIX = 'root_detector_'
     TEMPFOLDER = tempfile.TemporaryDirectory(prefix=TEMPPREFIX)
     print('Temporary Directory: %s'%TEMPFOLDER.name)
@@ -92,9 +94,28 @@ def settings():
     elif request.method=='GET':
         return flask.jsonify(processing.get_settings())
 
+@app.route('/process_root_tracking', methods=['GET', 'POST'])
+def process_root_tracking():
+    if request.method=='GET':
+        fname0 = os.path.join(TEMPFOLDER.name, request.args['filename0'])
+        fname1 = os.path.join(TEMPFOLDER.name, request.args['filename1'])
+        result = root_tracking.process(fname0, fname1)
+    elif request.method=='POST':
+        data   = request.get_json(force=True)
+        fname0 = os.path.join(TEMPFOLDER.name, data['filename0'])
+        fname1 = os.path.join(TEMPFOLDER.name, data['filename1'])
+        corrections = data['corrections']
+        result = root_tracking.process(fname0, fname1, corrections)
+    return flask.jsonify({
+        'points0':    result['points0'].tolist(),
+        'points1':    result['points1'].tolist(),
+        'growthmap'     :  os.path.basename(result['growthmap']),
+        'growthmap_rgba':  os.path.basename(result['growthmap_rgba']),
+    })
+    return 'OK'
 
 
-is_debug = sys.argv[0].endswith('.py')
+
 if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not is_debug:  #to avoid flask starting twice
     with app.app_context():
         processing.init()
@@ -102,4 +123,7 @@ if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not is_debug:  #to avoid fla
         	print('Flask started')
         	webbrowser.open('http://localhost:5000', new=2)
 
-app.run(host='127.0.0.1',port=5000, debug=is_debug)
+#ugly ugly
+host = ([x[x.index('=')+1:] for x in sys.argv if x.startswith('--host=')] + ['127.0.0.1'])[0]
+print(f'Host: {host}')
+app.run(host=host,port=5000, debug=is_debug)

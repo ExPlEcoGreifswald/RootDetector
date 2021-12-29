@@ -61,6 +61,8 @@ function set_input_files(files){
         global.input_files[this.name].datetime = EXIF.getTag(this, "DateTime");
     });
   }
+
+  RootTracking.set_input_files(files);
 }
 
 //called when user selects one or multiple input files
@@ -118,7 +120,6 @@ function process_file(filename){
 
   upload_file_to_flask('/file_upload', global.input_files[filename].file);
   if(!!global.input_files[filename].mask)
-    //upload_mask(global.input_files[filename].mask);
     upload_mask(filename);
   
   //send a processing request to python update gui with the results

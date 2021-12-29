@@ -1,20 +1,19 @@
 import os
 
 import glob
-import dill
-dill._dill._reverse_typemap['ClassType'] = type
+#import dill
+#dill._dill._reverse_typemap['ClassType'] = type
 import numpy as np
-import itertools
 import threading
-import glob
 import json
 
-import tensorflow as tf
-import tensorflow.keras as keras
-K = keras.backend
-print('TensorFlow version: %s'%tf.__version__)
-print('Keras version: %s'%keras.__version__)
+#import tensorflow as tf
+#import tensorflow.keras as keras
+#K = keras.backend
+#print('TensorFlow version: %s'%tf.__version__)
+#print('Keras version: %s'%keras.__version__)
 
+import PIL.Image
 import skimage.io         as skio
 import skimage.util       as skimgutil
 
@@ -37,7 +36,8 @@ class GLOBALS:
 
 
 def init():
-    load_settings()
+    pass
+    #load_settings()
 
 def load_model(name):
     '''Loads the root segmentation model'''
@@ -57,8 +57,9 @@ def load_exmask_model(name):
 
 
 def load_image(path):
-    x = GLOBALS.model.load_image(path)
-    x = x[...,tf.newaxis] if len(x.shape)==2 else x
+    #x = GLOBALS.model.load_image(path)
+    x = PIL.Image.open(path) / np.float32(255)
+    x = x[...,np.newaxis] if len(x.shape)==2 else x
     x = x[...,:3]
     return x
 
@@ -105,11 +106,11 @@ def write_as_png(path,x):
 
 
 def write_as_jpeg(path,x):
-    x = tf.cast(x, tf.float32)
-    x = x[...,tf.newaxis] if len(x.shape)==2 else x
+    x = x.astype('float32')
+    x = x[...,np.newaxis] if len(x.shape)==2 else x
     x = x[...,:3]
-    x = x*255 if tf.reduce_max(x)<=1 else x
-    tf.io.write_file(path, tf.image.encode_jpeg(  tf.cast(x, tf.uint8)  ))
+    x = x*255 if np.max(x)<=1 else x
+    PIL.Image.fromarray(x.astype('uint8')).save(path)
 
 
 def progress_callback_for_image(imagename):
