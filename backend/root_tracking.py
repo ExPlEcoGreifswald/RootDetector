@@ -16,19 +16,19 @@ def process(filename0, filename1, corrections=None):
     segmodel   = cloudpickle.load(open('models/root_tracking_models/019c_segmodel.full.cpkl', 'rb'))
     matchmodel = cloudpickle.load(open('models/root_tracking_models/019c_contrastive_model.full.cpkl', 'rb'))
 
-    img0    = torchvision.transforms.ToTensor()(PIL.Image.open(filename0))
-    img1    = torchvision.transforms.ToTensor()(PIL.Image.open(filename1))
-
-    seg0    = run_segmentation(segmodel, img0, dev='cpu')
-    seg1    = run_segmentation(segmodel, img1, dev='cpu')
-
     if corrections is None:
+        img0    = torchvision.transforms.ToTensor()(PIL.Image.open(filename0))
+        img1    = torchvision.transforms.ToTensor()(PIL.Image.open(filename1))
+        seg0    = run_segmentation(segmodel, img0, dev='cpu')
+        seg1    = run_segmentation(segmodel, img1, dev='cpu')
         output  = bruteforce_match(img0, img1, seg0, seg1, matchmodel, n=5000, cyclic_threshold=4, dev='cpu')
         imap    = interpolation_map(output['points0'], output['points1'], img0.shape[-2:])
     else:
-        with np.load(f'{filename0}.{os.path.basename(filename1)}.imap.npz', allow_pickle=True) as npz_file:
-            imap    = npz_file['imap']
+        imap   = np.load(f'{filename0}.{os.path.basename(filename1)}.imap.npy').astype('float32')
         output = cloudpickle.load( open(f'{filename0}.{os.path.basename(filename1)}.bfm.pkl','rb') )
+        seg0   = PIL.Image.open(f'{filename0}.segmentation.png') / np.float32(255)
+        seg1   = PIL.Image.open(f'{filename1}.segmentation.png') / np.float32(255)
+
         corrections    = np.array(corrections)
         corrections_p1 = corrections[:,:2][:,::-1]
         corrections_p0 = corrections[:,2:][:,::-1]
@@ -38,16 +38,19 @@ def process(filename0, filename1, corrections=None):
         ], axis=-1)
         output['points0'] = np.concatenate([output['points0'], corrections_p0])
         output['points1'] = np.concatenate([output['points1'], corrections_p1])
-        imap    = interpolation_map(output['points0'], output['points1'], img0.shape[-2:])
-    np.savez_compressed(f'{filename0}.{os.path.basename(filename1)}.imap.npz', imap=imap)
+        imap    = interpolation_map(output['points0'], output['points1'], seg0.shape)
+    
+    np.save(f'{filename0}.{os.path.basename(filename1)}.imap.npy', imap.astype('float16'))  #f16 to save space & time
     open(f'{filename0}.{os.path.basename(filename1)}.bfm.pkl','wb').write(cloudpickle.dumps(output))
+    PIL.Image.fromarray( (seg0*255).astype('uint8') ).save( f'{filename0}.segmentation.png' )
+    PIL.Image.fromarray( (seg1*255).astype('uint8') ).save( f'{filename1}.segmentation.png' )
 
-    gmap    = create_growth_map( seg0>0.5,  warp(seg1, imap)>0.5 )
+    warped_seg1 = warp(seg1, imap)
+    gmap        = create_growth_map_rgba( seg0>0.5,  warped_seg1>0.5 )
     output_file = f'{filename0}.{os.path.basename(filename1)}.growthmap.png'
-    PIL.Image.fromarray(gmap).save( output_file )
+    PIL.Image.fromarray(gmap).convert('RGB').save( output_file )
     output['growthmap'] = output_file
 
-    gmap        = create_growth_map_rgba( seg0>0.5,  warp(seg1, imap)>0.5 )
     output_file = f'{filename0}.{os.path.basename(filename1)}.growthmap_rgba.png'
     PIL.Image.fromarray(gmap).save( output_file )
     output['growthmap_rgba'] = output_file
@@ -142,35 +145,29 @@ def filter_points(p0, p1, threshold=50):
     return p0[dev<threshold], p1[dev<threshold]
 
 def interpolation_map(p0,p1, shape):
-    p0,p1 = filter_points(p0,p1)
-    if len(p0)<10:
-        return None
+    '''Creates a map with coordinates from image1 to image0 according to matched points p0 and p1'''
+    #direction vectors from each point1 to corresponding point0
     delta = (p1 - p0).astype('float32')
+    
+    #additional corner points, for extraploation
+    cpts  = np.array([(0,0), (0,shape[1]), (shape[0],0), shape])
+    #get their values via nearest neighbor
+    delta_corners = scipy.interpolate.NearestNDInterpolator(p0, delta)(*cpts.T)
+    #add them to the pool of known points
+    p0    = np.concatenate([p0, cpts])
+    delta = np.concatenate([delta, delta_corners])
+    
+    #densify the set of sparse points
     Y,X   = np.meshgrid(np.arange(shape[0]), np.arange(shape[1]), indexing='ij')
-    delta_nearest = np.stack([
-        scipy.interpolate.griddata( p0, delta[:,0], (Y,X), method='nearest' ),  
-        scipy.interpolate.griddata( p0, delta[:,1], (Y,X), method='nearest' ),
-    ], axis=-1)
-    delta_linear = np.stack([
-        scipy.interpolate.griddata( p0, delta[:,0], (Y,X), method='linear' ),  
-        scipy.interpolate.griddata( p0, delta[:,1], (Y,X), method='linear' ),
-    ], axis=-1)
-    delta = np.where( np.isfinite(delta_linear), delta_linear, delta_nearest )
-    return delta + np.stack([Y,X], axis=-1)
-
-def create_growth_map(seg0, seg1):
-    gmap = np.zeros( seg0.shape[:2]+(3,), 'uint8' )
-    isec = seg0 * seg1
-    gmap[:]            = ( 39, 54, 59)
-    gmap[isec]         = (255,255,255)
-    gmap[seg0 * ~isec] = (226,106,116)
-    gmap[seg1 * ~isec] = ( 96,209,130)
-    return gmap
+    delta_linear = scipy.interpolate.LinearNDInterpolator(p0, delta)(Y,X)
+    
+    #convert from direction vectors to coordinates again
+    return delta_linear + np.stack([Y,X], axis=-1)
 
 def create_growth_map_rgba(seg0, seg1):
     gmap = np.zeros( seg0.shape[:2]+(4,), 'uint8' )
     isec = seg0 * seg1
-    gmap[:]            = (  0,  0,  0,  0)
+    gmap[:]            = ( 39, 54, 59,  0)
     gmap[isec]         = (255,255,255,255)
     gmap[seg0 * ~isec] = (226,106,116,255)
     gmap[seg1 * ~isec] = ( 96,209,130,255)
@@ -178,4 +175,4 @@ def create_growth_map_rgba(seg0, seg1):
 
 
 def warp(seg, imap):
-    return scipy.ndimage.map_coordinates(seg, imap.transpose(2,0,1))
+    return scipy.ndimage.map_coordinates(seg, imap.transpose(2,0,1), order=1)

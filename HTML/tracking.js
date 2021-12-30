@@ -56,7 +56,7 @@ var RootTracking = new function() {
         return $.get(`/process_root_tracking`, {filename0:filename0, filename1:filename1}).done( data => {
             console.log(data)
             RootTracking.paint_matched_points(filename0, filename1, data.points0, data.points1);
-            $(`[filename0="${filename0}"] img.left-overlay`).attr('src', `/images/${data.growthmap_rgba}?_=${new Date().getTime()}`)
+            $(`[filename0="${filename0}"] img.left-overlay`).attr('src', `/images/${data.growthmap_rgba}?_=${new Date().getTime()}`).show()
             delete_image(filename0);
             delete_image(filename1);
         });
@@ -67,34 +67,33 @@ var RootTracking = new function() {
         var img  = $(event.target).find('img')[0];
         var $svg = $(event.target).find('svg');
 
-        var $parent = $(img).parent().parent()
-        var xform   = parse_css_matrix($(event.target).css('transform'));
-        var svg_xy  = page2img_coordinates([event.pageX, event.pageY], img, xform, $parent[0])
-
+        var svg_xy  = page2img_coordinates([event.pageX, event.pageY], img, $(event.target))
         $svg.find('circle.cursor').attr({cx:svg_xy[0], cy:svg_xy[1]})
     }
 
-    //translate page coordinates xy to img coordinates via transform `xform`
-    //(viewport element provides topleft corner)
-    var page2img_coordinates = function(xy, img, xform, viewport){   //TODO: simplify/reduce number of arguments
-        //var H = img.clientHeight;  //integer
-        //var W = img.clientWidth;
-        var H = $(img).height()      //float    //FIXME: still inaccurate
-        var W = $(img).width()
+    //translate page coordinates xy to img coordinates
+    //(viewport element provides topleft corner and transform)
+    var page2img_coordinates = function(xy, img, $viewport){   //TODO: simplify/reduce number of arguments
+        if(navigator.userAgent.indexOf('Chrom') != -1){
+            //some layout issues with chrome
+            var H = img.clientHeight;  //integer
+            var W = img.clientWidth;
+        } else {
+            var H = $(img).height()      //float
+            var W = $(img).width()
+        }
+        var xform        = parse_css_matrix($viewport.css('transform'));
         //absolute coordinates on the html element in pixels
-        var html_x_abs   = xy[0] - $(viewport).offset().left
-        var html_y_abs   = xy[1] - $(viewport).offset().top
-        //relative coordinates on the html element, range -0.5..+0.5
-        var html_x_rel   = (html_x_abs - W/2)/W 
-        var html_y_rel   = (html_y_abs - H/2)/H
-        //relative coordinates on the svg element, range -0.5..+0.5
-        var svg_x_rel    = (html_x_rel - xform.x/W) / xform.scale
-        var svg_y_rel    = (html_y_rel - xform.y/H) / xform.scale
+        var html_x_abs   = xy[0] - $viewport.offset().left
+        var html_y_abs   = xy[1] - $viewport.offset().top
+        //relative coordinates on the html element, range 0.0..1.0
+        var html_x_rel   = html_x_abs / W / xform.scale
+        var html_y_rel   = html_y_abs / H / xform.scale
         //absolute coordinates on the svg element
-        var svg_x_abs    = (svg_x_rel + 0.5) * img.naturalWidth
-        var svg_y_abs    = (svg_y_rel + 0.5) * img.naturalHeight
+        var svg_x_abs    = html_x_rel * img.naturalWidth
+        var svg_y_abs    = html_y_rel * img.naturalHeight
         
-        //console.log('>', [H,W], [html_x_abs, html_y_abs], [html_x_rel, html_y_rel], [svg_x_abs, svg_y_abs])
+        //console.log('>', [H,W], [html_x_abs, html_y_abs], [html_x_rel, html_y_rel], [svg_x_abs, svg_y_abs], xform)
         return [svg_x_abs, svg_y_abs];
     }
 
@@ -149,7 +148,7 @@ var RootTracking = new function() {
     this.on_svg_dblclick = function(e){
         if(!e.shiftKey)
             return;
-        var $img   = $(e.target);
+        var $img   = $(e.target).closest('.view-box').find('.transform-box');
         $img.css('transform', "matrix(1,0,0,1,0,0)");
     }
 
@@ -162,19 +161,18 @@ var RootTracking = new function() {
     }
 
     this.draw_correction = function($img, start_xy, end_xy){
-        var $parent = $img.parent().parent()
-        var xform   = parse_css_matrix($img.parent().css('transform'));
-        start_xy    = page2img_coordinates(start_xy, $img[0], xform, $parent[0])
-        end_xy      = page2img_coordinates(end_xy,   $img[0], xform, $parent[0])
+        start_xy    = page2img_coordinates(start_xy, $img[0], $img.parent())
+        end_xy      = page2img_coordinates(end_xy,   $img[0], $img.parent())
 
         var $svg    = $img.siblings('svg');
         $svg.find('polyline.correction-line').remove()
         var $line = $(document.createElementNS('http://www.w3.org/2000/svg','polyline'));
         var points_str = `${start_xy[0]},${start_xy[1]}  ${end_xy[0]},${end_xy[1]}`;
         const line_attrs = {
-            stroke         : "white",
+            stroke         : "cyan",
             "stroke-width" : "1",
             fill           : "none",
+            "marker-end"     : "url(#dot-marker)"
         };
         $line.attr(line_attrs).attr("points", points_str).addClass('correction-line');
         $svg.append($line);
@@ -193,14 +191,14 @@ var RootTracking = new function() {
         var post_data = {filename0:filename0, filename1:filename1, corrections:points}
 
         console.log(`Sending root tracking request for files ${filename0} and ${filename1} with corrections ${points}`);
-        upload_file_to_flask('/file_upload', global.input_files[filename0].file);
-        upload_file_to_flask('/file_upload', global.input_files[filename1].file);
+        //upload_file_to_flask('/file_upload', global.input_files[filename0].file);
+        //upload_file_to_flask('/file_upload', global.input_files[filename1].file);
         $.post('/process_root_tracking', JSON.stringify(post_data)).done( data => {   //TODO: code re-use
             console.log(data)
             RootTracking.paint_matched_points(filename0, filename1, data.points0, data.points1);
             $(`[filename0="${filename0}"] img.left-overlay`).attr('src', `/images/${data.growthmap_rgba}?_=${new Date().getTime()}`)
-            delete_image(filename0);
-            delete_image(filename1);
+            //delete_image(filename0);
+            //delete_image(filename1);
 
             $correction_lines.remove()
         });
