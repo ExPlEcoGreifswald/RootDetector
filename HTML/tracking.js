@@ -69,6 +69,14 @@ var RootTracking = new function() {
 
         var svg_xy  = page2img_coordinates([event.pageX, event.pageY], img, $(event.target))
         $svg.find('circle.cursor').attr({cx:svg_xy[0], cy:svg_xy[1]})
+
+        //TODO
+        /*if(event.shiftKey)
+            $(event.target).css('cursor', 'move')
+        else if (event.ctrlKey)
+            $(event.target).css('cursor', 'copy')
+        else
+            $(event.target).css('cursor', 'default')*/
     }
 
     //translate page coordinates xy to img coordinates
@@ -112,37 +120,71 @@ var RootTracking = new function() {
         $img.find('svg').find('circle.cursor').attr('r', 5/scale)
     }
 
-    this.on_svg_mousedown = function(md_evt){
-        if(!md_evt.shiftKey && !md_evt.ctrlKey)
-            return;
+    this.on_svg_mousedown = function(event){
+        if(event.shiftKey)
+            start_move_image(event)
+        else if(event.ctrlKey)
+            start_draw_correction(event)
+    }
 
-        var $img    = $(md_evt.target)
-        var click_y = md_evt.pageY;
-        var click_x = md_evt.pageX;
+    var start_move_image = function(mousedown_event){
+        var $img    = $(mousedown_event.target)
+        var click_y = mousedown_event.pageY;
+        var click_x = mousedown_event.pageX;
 
-        function stop_drag(){
-            $(document).off('mousemove');
-            $(document).off('mouseup');
-        }
-
-        $(document).on('mousemove', function(mm_evt) {
-            if( (mm_evt.buttons & 0x01)==0 ){
-                stop_drag();
+        $(document).on('mousemove', function(mousemove_event) {
+            if( (mousemove_event.buttons & 0x01)==0 ){
+                $(document).off('mousemove');
                 return;
             }
 
-            var delta_y = mm_evt.pageY - click_y;
-            var delta_x = mm_evt.pageX - click_x;
-                click_y = mm_evt.pageY;
-                click_x = mm_evt.pageX;
-            mm_evt.stopPropagation();
-
-            if(md_evt.shiftKey)
-                RootTracking.move_image($img, delta_x, delta_y);
-            else if(md_evt.ctrlKey)
-                RootTracking.draw_correction($img.find('.left-image'), [md_evt.pageX, md_evt.pageY], [mm_evt.pageX, mm_evt.pageY]);   //TODO: check if left image
+            var delta_y = mousemove_event.pageY - click_y;
+            var delta_x = mousemove_event.pageX - click_x;
+                click_y = mousemove_event.pageY;
+                click_x = mousemove_event.pageX;
+            mousemove_event.stopPropagation();
+            
+            var xform  = parse_css_matrix($img.css('transform'));
+            var x      = xform.x + delta_x;
+            var y      = xform.y + delta_y;
+            var matrix = `matrix(${xform.scale}, 0, 0, ${xform.scale}, ${x}, ${y})`
+            $img.css('transform', matrix);
         })
     }
+
+    var start_draw_correction = function(mousedown_event){
+        var $img    = $(mousedown_event.target).find('.left-image')
+        if($img.get().length==0)
+            return;
+        var $svg     = $img.siblings('svg');
+        
+        $(document).on('mousemove', function(mousemove_event) {
+            if( (mousemove_event.buttons & 0x01)==0 ){
+                $svg.find('polyline.correction-line.unfinished').removeClass('unfinished')
+                $(document).off('mousemove');
+                return;
+            }
+
+            var start_xy = [mousedown_event.pageX, mousedown_event.pageY]
+            var end_xy   = [mousemove_event.pageX, mousemove_event.pageY]
+                start_xy = page2img_coordinates(start_xy, $img[0], $img.parent())
+                end_xy   = page2img_coordinates(end_xy,   $img[0], $img.parent())
+            
+            $svg.find('polyline.correction-line.unfinished').remove()
+            var $line = $(document.createElementNS('http://www.w3.org/2000/svg','polyline'));
+            var points_str = `${start_xy[0]},${start_xy[1]}  ${end_xy[0]},${end_xy[1]}`;
+            const line_attrs = {
+                stroke         : "cyan",
+                "stroke-width" : "1",
+                fill           : "none",
+                "marker-start" : "url(#dot-marker-green)",
+                "marker-end"   : "url(#dot-marker-red)",
+            };
+            $line.attr(line_attrs).attr("points", points_str).addClass(['correction-line', 'unfinished']);
+            $svg.append($line);
+        });
+    }
+
 
     //reset view
     this.on_svg_dblclick = function(e){
@@ -150,33 +192,6 @@ var RootTracking = new function() {
             return;
         var $img   = $(e.target).closest('.view-box').find('.transform-box');
         $img.css('transform', "matrix(1,0,0,1,0,0)");
-    }
-
-    this.move_image = function($img, dx, dy){
-        var xform  = parse_css_matrix($img.css('transform'));
-        var x      = xform.x + dx;
-        var y      = xform.y + dy;
-        var matrix = `matrix(${xform.scale}, 0, 0, ${xform.scale}, ${x}, ${y})`
-        $img.css('transform', matrix);
-    }
-
-    this.draw_correction = function($img, start_xy, end_xy){
-        start_xy    = page2img_coordinates(start_xy, $img[0], $img.parent())
-        end_xy      = page2img_coordinates(end_xy,   $img[0], $img.parent())
-
-        var $svg    = $img.siblings('svg');
-        $svg.find('polyline.correction-line').remove()
-        var $line = $(document.createElementNS('http://www.w3.org/2000/svg','polyline'));
-        var points_str = `${start_xy[0]},${start_xy[1]}  ${end_xy[0]},${end_xy[1]}`;
-        const line_attrs = {
-            stroke         : "cyan",
-            "stroke-width" : "1",
-            fill           : "none",
-            "marker-end"     : "url(#dot-marker)"
-        };
-        $line.attr(line_attrs).attr("points", points_str).addClass('correction-line');
-        $svg.append($line);
-
     }
 
     //called when user clicks on the "check" button to apply manual corrrections to the growth map
