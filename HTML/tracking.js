@@ -1,6 +1,6 @@
 var RootTracking = new function() {
     
-    this.set_input_files = function(files){
+    this.set_input_files = function(files){  //TODO: sorting (in upstream function)
         for(var f0 of files){
             for(var f1 of files){
                 if(f0 == f1)
@@ -8,7 +8,7 @@ var RootTracking = new function() {
                 
                 var base0 = f0.name.split('_').slice(0,3).join('_')
                 var base1 = f1.name.split('_').slice(0,3).join('_')
-                if(base0 == base1)
+                if(base0 == base1)                                                   //TODO: check date
                     $('template#tracking-item').tmpl({filename0:f0.name, filename1:f1.name}).appendTo('#tracking-filetable tbody')
             }
         }
@@ -53,10 +53,11 @@ var RootTracking = new function() {
         upload_file_to_flask('/file_upload', global.input_files[filename1].file);
         
         //send a processing request to python & update gui with the results
-        return $.get(`/process_root_tracking`, {filename0:filename0, filename1:filename1}).done( data => {
+        return $.get(`/process_root_tracking`, {filename0:filename0, filename1:filename1}).done( data => {   //TODO: code re-use
             console.log(data)
-            RootTracking.paint_matched_points(filename0, filename1, data.points0, data.points1);
-            $(`[filename0="${filename0}"] img.left-overlay`).attr('src', `/images/${data.growthmap_rgba}?_=${new Date().getTime()}`).show()
+            paint_matched_points(filename0, filename1, data.points0, data.points1);
+            $(`[filename0="${filename0}"] img.left-overlay`).attr('src', `/images/${data.growthmap_rgba}?_=${new Date().getTime()}`).show()  //FIXME: WRONG! check filename1!
+            global.input_files[filename0].tracking_results[filename1] = data;
             delete_image(filename0);
             delete_image(filename1);
         });
@@ -77,6 +78,11 @@ var RootTracking = new function() {
             $(event.target).css('cursor', 'copy')
         else
             $(event.target).css('cursor', 'default')*/
+
+        //FIXME: left or right image
+        var filename0 = $(img).closest('[filename0]').attr('filename0')
+        var filename1 = $(img).closest('[filename1]').attr('filename1')
+        highlight_closest_matched_point(filename0, filename1, svg_xy);
     }
 
     //translate page coordinates xy to img coordinates
@@ -123,8 +129,11 @@ var RootTracking = new function() {
     this.on_svg_mousedown = function(event){
         if(event.shiftKey)
             start_move_image(event)
-        else if(event.ctrlKey)
-            start_draw_correction(event)
+        else if(event.ctrlKey){
+            var removed = remove_point_from_click(event)
+            if(!removed)
+                start_draw_correction(event)
+        }
     }
 
     var start_move_image = function(mousedown_event){
@@ -153,6 +162,7 @@ var RootTracking = new function() {
     }
 
     var start_draw_correction = function(mousedown_event){
+        //TODO: check if growth map is loaded
         var $img    = $(mousedown_event.target).find('.left-image')
         if($img.get().length==0)
             return;
@@ -185,6 +195,22 @@ var RootTracking = new function() {
         });
     }
 
+    var remove_point_from_click = function(mousedown_event){
+        var $highlighted_point = $(mousedown_event.target).find('svg').find('.highlighted-matched-point')
+        if($highlighted_point.length>0){
+            var filename0 = $(mousedown_event.target).closest('[filename0]').attr('filename0');
+            var filename1 = $(mousedown_event.target).closest('[filename1]').attr('filename1');
+
+            var index = Number($highlighted_point.attr('index'));
+            var tracking_results = global.input_files[filename0].tracking_results[filename1];
+            tracking_results.points0.splice(index, 1)
+            tracking_results.points1.splice(index,1)
+            paint_matched_points(filename0, filename1, tracking_results.points0, tracking_results.points1)
+            $('.highlighted-matched-point').remove()
+            return true;
+        }
+        return false;
+    }
 
     //reset view
     this.on_svg_dblclick = function(e){
@@ -196,6 +222,7 @@ var RootTracking = new function() {
 
     //called when user clicks on the "check" button to apply manual corrrections to the growth map
     this.on_apply_corrections = function(event){
+        //TODO: check if growth map is loaded
         var $svg = $(event.target).closest("[filename0]").find('svg.tracking-left-overlay-svg')
         var $correction_lines = $svg.find('polyline.correction-line')
         var points_str        = $correction_lines.get().map(x=>x.getAttribute('points'));
@@ -203,24 +230,26 @@ var RootTracking = new function() {
 
         var filename0 = $(event.target).closest("[filename0]").attr("filename0");
         var filename1 = $(event.target).closest("[filename1]").attr("filename1");
-        var post_data = {filename0:filename0, filename1:filename1, corrections:points}
+        var tracking_results = global.input_files[filename0].tracking_results[filename1];
+        var post_data = {
+            filename0:filename0, points0:tracking_results.points0,
+            filename1:filename1, points1:tracking_results.points1,
+            corrections:points
+        }
 
         console.log(`Sending root tracking request for files ${filename0} and ${filename1} with corrections ${points}`);
-        //upload_file_to_flask('/file_upload', global.input_files[filename0].file);
-        //upload_file_to_flask('/file_upload', global.input_files[filename1].file);
         $.post('/process_root_tracking', JSON.stringify(post_data)).done( data => {   //TODO: code re-use
             console.log(data)
-            RootTracking.paint_matched_points(filename0, filename1, data.points0, data.points1);
-            $(`[filename0="${filename0}"] img.left-overlay`).attr('src', `/images/${data.growthmap_rgba}?_=${new Date().getTime()}`)
-            //delete_image(filename0);
-            //delete_image(filename1);
+            paint_matched_points(filename0, filename1, data.points0, data.points1);
+            $(`[filename0="${filename0}"] img.left-overlay`).attr('src', `/images/${data.growthmap_rgba}?_=${new Date().getTime()}`)  //FIXME: WRONG! see above
+            global.input_files[filename0].tracking_results[filename1] = data;
 
             $correction_lines.remove()
         });
     }
 
 
-    this.paint_matched_points = function(filename0, filename1, p0,p1){
+    var paint_matched_points = function(filename0, filename1, p0,p1){
         var p0_str = p0.map(p => `${p[1]},${p[0]}`).join(' ')
         var p1_str = p1.map(p => `${p[1]},${p[0]}`).join(' ')
 
@@ -229,6 +258,56 @@ var RootTracking = new function() {
         var $svg1 = $parent.find(`.tracking-right-overlay-svg`)
         $svg0.find('polyline.matched-points').attr('points', p0_str);
         $svg1.find('polyline.matched-points').attr('points', p1_str);
+    }
+
+    var find_closest_point = function(p, points, return_index=false, max_distance=undefined){
+        var distances = points.map( x => ((x[0]-p[0])**2 + (x[1]-p[1])**2)**0.5 )
+        var i         = argmin(distances)
+        if(distances[i]<=max_distance || max_distance==undefined)
+            if(return_index)
+                return i;
+            else
+                return points[i];
+    }
+
+    var highlight_closest_matched_point = function(filename0, filename1, xy){
+        var tracking_results = global.input_files[filename0].tracking_results[filename1]
+        if(tracking_results==undefined)
+            return;
+        
+        var $parent = $(`[filename0="${filename0}"][filename1="${filename1}"]`)  //FIXME? pass $svg as argument
+        var $svg0 = $parent.find(`.tracking-left-overlay-svg`)
+        var $svg1 = $parent.find(`.tracking-right-overlay-svg`)
+        $svg0.find('circle.highlighted-matched-point').remove()
+        $svg1.find('circle.highlighted-matched-point').remove()
+
+        var idx = find_closest_point([xy[1], xy[0]], tracking_results.points0, true, 3)  //FIXME: or points1
+        if(idx==undefined)
+            return;
+        var p0  = tracking_results.points0[idx];
+        var p1  = tracking_results.points1[idx];
+
+        var $point0     = $(document.createElementNS('http://www.w3.org/2000/svg','circle'));
+        const attrs0 = {
+            cx   : p0[1],
+            cy   : p0[0],
+            r    : 3,
+            fill : "blue",
+            index: idx,
+        };
+        $point0.attr(attrs0).addClass('highlighted-matched-point');
+        $svg0.append($point0);
+
+        var $point1     = $(document.createElementNS('http://www.w3.org/2000/svg','circle'));
+        const attrs1 = {
+            cx   : p1[1],
+            cy   : p1[0],
+            r    : 3,
+            fill : "blue",
+            index: idx,
+        };
+        $point1.attr(attrs1).addClass('highlighted-matched-point');
+        $svg1.append($point1);
     }
 
 }; //RootTracking

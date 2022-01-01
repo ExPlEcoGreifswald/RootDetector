@@ -25,6 +25,7 @@ const FILE = {name:          '',
               mask:          undefined,    //javascript file object (optional)
               training_mask: undefined,    //javascript file object (optional)
               statistics:    undefined,    //dict e.g: {"sum":9999, ...}
+              tracking_results : {},       //dict e.g: {'right-image.jpg':data}
 };
 
 

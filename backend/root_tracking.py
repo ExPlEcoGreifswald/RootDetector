@@ -11,7 +11,7 @@ import PIL.Image
 
 
 
-def process(filename0, filename1, corrections=None):
+def process(filename0, filename1, corrections=None, points0=None, points1=None):
     print(f'Performing root tracking on files {filename0} and {filename1}')
     segmodel   = cloudpickle.load(open('models/root_tracking_models/019c_segmodel.full.cpkl', 'rb'))
     matchmodel = cloudpickle.load(open('models/root_tracking_models/019c_contrastive_model.full.cpkl', 'rb'))
@@ -29,15 +29,17 @@ def process(filename0, filename1, corrections=None):
         seg0   = PIL.Image.open(f'{filename0}.segmentation.png') / np.float32(255)
         seg1   = PIL.Image.open(f'{filename1}.segmentation.png') / np.float32(255)
 
-        corrections    = np.array(corrections)
+        corrections    = np.array(corrections).reshape(-1,4)
         corrections_p1 = corrections[:,:2][:,::-1]
         corrections_p0 = corrections[:,2:][:,::-1]
         corrections_p1 = np.stack([
-            scipy.ndimage.map_coordinates(imap[...,0], corrections_p1.T, order=1),
+            scipy.ndimage.map_coordinates(imap[...,0], corrections_p1.T, order=1), #TODO: use scipy.interpolate.LinearNDInterpolator
             scipy.ndimage.map_coordinates(imap[...,1], corrections_p1.T, order=1),
         ], axis=-1)
-        output['points0'] = np.concatenate([output['points0'], corrections_p0])
-        output['points1'] = np.concatenate([output['points1'], corrections_p1])
+        #output['points0'] = np.concatenate([output['points0'], corrections_p0])
+        #output['points1'] = np.concatenate([output['points1'], corrections_p1])
+        output['points0'] = np.concatenate([points0, corrections_p0])
+        output['points1'] = np.concatenate([points1, corrections_p1])
         imap    = interpolation_map(output['points0'], output['points1'], seg0.shape)
     
     np.save(f'{filename0}.{os.path.basename(filename1)}.imap.npy', imap.astype('float16'))  #f16 to save space & time
