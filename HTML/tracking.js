@@ -1,18 +1,29 @@
 var RootTracking = new function() {
     
-    this.set_input_files = function(files){  //TODO: sorting (in upstream function)
+    this.set_input_files = function(files){
+        var $table = $('#tracking-filetable tbody')
+        $table.find('tr').remove()
+
         for(var f0 of files){
             for(var f1 of files){
                 if(f0 == f1)
                     continue;
                 
-                var base0 = f0.name.split('_').slice(0,3).join('_')
-                var base1 = f1.name.split('_').slice(0,3).join('_')
-                if(base0 == base1)                                                   //TODO: check date
-                    $('template#tracking-item').tmpl({filename0:f0.name, filename1:f1.name}).appendTo('#tracking-filetable tbody')
+                var parsed0 = parse_filename(f0.name)
+                var parsed1 = parse_filename(f1.name)
+                if(parsed0.base == parsed1.base && parsed0.date < parsed1.date)
+                    $('template#tracking-item').tmpl({filename0:f0.name, filename1:f1.name}).appendTo($table)
             }
         }
     };
+
+    var parse_filename = function(fname){
+        var splits = fname.split('_')
+        var base   = splits.slice(0,3).join('_')
+        var [d,m,y]  = splits[3].split('.').map(Number)
+        y          = (y>70)? y+1900 : y+2000;           //1970...2069
+        return {base:base, date:new Date(y,m,d)}
+    }
 
 
     //called when user clicks on a file table row to open it

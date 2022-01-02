@@ -34,10 +34,9 @@ function load_settings(){
     $('#settings-exclusionmask-enable').checkbox({onChange: on_exmask_checkbox});
 
     $.get('/settings').done(function(settings){
-        console.log(settings)
+        console.log('Loaded settings: ',settings)
         global.settings.active_model = settings.active_model
         global.settings.exmask_model = settings.exmask_active_model
-        console.log(global.settings);
 
         var models_list = []
         for(var modelname of settings.models)
@@ -50,7 +49,6 @@ function load_settings(){
         var exmaskmodels_list = []
         for(var name of settings.exmask_models)
             exmaskmodels_list.push({name:name, value:name, selected:(name==global.settings.exmask_model)})
-        console.log(exmaskmodels_list)
         $("#settings-exclusionmask-model").dropdown({values: exmaskmodels_list, showOnFocus:false })
 
         var $new_name_elements = $("#settings-new-modelname-field");

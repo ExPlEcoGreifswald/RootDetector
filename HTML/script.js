@@ -19,13 +19,14 @@ global = {
 
 
 
-const FILE = {name:          '',
-              file:          undefined,    //javascript file object
-              processed:     false,
-              mask:          undefined,    //javascript file object (optional)
-              training_mask: undefined,    //javascript file object (optional)
-              statistics:    undefined,    //dict e.g: {"sum":9999, ...}
-              tracking_results : {},       //dict e.g: {'right-image.jpg':data}
+const FILE = {
+  name:          '',
+  file:          undefined,    //javascript file object
+  processed:     false,
+  mask:          undefined,    //javascript file object (optional)
+  training_mask: undefined,    //javascript file object (optional)
+  statistics:    undefined,    //dict e.g: {"sum":9999, ...}
+  tracking_results : {},       //dict e.g: {'right-image.jpg':data}
 };
 
 
@@ -42,8 +43,8 @@ function init(){
 
 //update the accordion file list/table
 function update_inputfiles_list(){
-  $filestable = $('#filetable');
-  $filestable.find('tbody').html('');
+  var $filestable = $('#filetable');
+      $filestable.find('tbody').html('');
   for(f of Object.values(global.input_files)){
       $("#filetable-item-template").tmpl([{filename:f.name}]).appendTo($filestable.find('tbody'));
   }
@@ -51,18 +52,14 @@ function update_inputfiles_list(){
 
 //set global.input_files and update ui
 function set_input_files(files){
+  if(files.length==0)
+    return;
   global.input_files = {};
   global.metadata    = {};
-  for(f of files)
+  for(var f of files)
     global.input_files[f.name] = Object.assign({}, deepcopy(FILE), {name: f.name, file: f});
-  update_inputfiles_list();
-
-  for(f of files){
-      EXIF.getData(f, function() {
-        global.input_files[this.name].datetime = EXIF.getTag(this, "DateTime");
-    });
-  }
-
+  
+    update_inputfiles_list();
   RootTracking.set_input_files(files);
 }
 
@@ -73,8 +70,8 @@ function on_inputfiles_select(input){
 
 //called when user selects a folder with input files
 function on_inputfolder_select(input){
-  files = [];
-  for(f of input.files)
+  var files = [];
+  for(var f of input.files)
     if(f.type.startsWith('image'))
         files.push(f);
   set_input_files(files);
