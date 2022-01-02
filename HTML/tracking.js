@@ -56,7 +56,12 @@ var RootTracking = new function() {
         return $.get(`/process_root_tracking`, {filename0:filename0, filename1:filename1}).done( data => {   //TODO: code re-use
             console.log(data)
             paint_matched_points(filename0, filename1, data.points0, data.points1);
-            $(`[filename0="${filename0}"] img.left-overlay`).attr('src', `/images/${data.growthmap_rgba}?_=${new Date().getTime()}`).show()  //FIXME: WRONG! check filename1!
+            var $overlay = $(`[filename0="${filename0}"][filename1="${filename1}"] img.left-overlay`)
+            $overlay.attr('src', `/images/${data.growthmap_rgba}?_=${new Date().getTime()}`).show()
+            var $chkbx = $(`[filename0="${filename0}"][filename1="${filename1}"] .view-menu-popup .checkbox`)
+            $chkbx.removeClass('disabled').checkbox('set checked').checkbox({onChange:function(){
+                $overlay.toggle($chkbx.checkbox('is checked'));
+            }})
             global.input_files[filename0].tracking_results[filename1] = data;
             delete_image(filename0);
             delete_image(filename1);

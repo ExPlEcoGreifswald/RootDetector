@@ -197,7 +197,6 @@
             </td>
 
             <td style="display:flex; justify-content: space-around;" onclick="event.stopPropagation();">
-              <!--<i class="blue play icon" onclick="RootTracking.on_process_clicked(event)"></i>-->
               <i class="grey close icon"></i>
             </td>
           </tr>
@@ -206,8 +205,20 @@
             <td colspan="5" class="ui content" style="padding:0px; padding-bottom:10px;">
               <div class="ui bottom attached secondary icon menu" style="border-top-width: 0px;">
                 <a class="item" onclick="RootTracking.on_process_clicked(event)"><i class="play icon"></i></a>
+
                 <a class="item" onclick="RootTracking.on_apply_corrections(event)"><i class="check icon"></i></a>
-                <a class="item"><i class="eye icon"></i></a>
+
+                <a class="item view-menu-button" data-position="bottom left">
+                  <i class="eye icon"></i>
+                </a>
+                <div class="ui popup view-menu-popup">
+                  <div class="ui disabled checkbox">
+                    <input type="checkbox">
+                    <label>Show growth map</label>
+                  </div>
+                </div>
+                <script>$('.view-menu-button').last().popup({hoverable:true});</script>
+
                 <a class="item"><i class="help icon"></i></a>
               </div>
               <div style="display: flex; align-items: flex-start; justify-content: center;" >
@@ -255,11 +266,6 @@
 
 
 
-
-<!--for testing only-->
-<!--<script>$('template#tracking-item').tmpl({filename0:"banana.jpg", filename1:"banana.jpg"}).appendTo('#tracking-filetable tbody')</script>
-<script>$('template#tracking-item').tmpl({filename0:"potato.jpg", filename1:"tomato.jpg"}).appendTo('#tracking-filetable tbody')</script>
--->
 
 <!-- Settings -->
 <div class="ui tiny modal" id="settings-dialog">

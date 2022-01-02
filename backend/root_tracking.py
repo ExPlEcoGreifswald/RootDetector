@@ -21,7 +21,7 @@ def process(filename0, filename1, corrections=None, points0=None, points1=None):
         img1    = torchvision.transforms.ToTensor()(PIL.Image.open(filename1))
         seg0    = run_segmentation(segmodel, img0, dev='cpu')
         seg1    = run_segmentation(segmodel, img1, dev='cpu')
-        output  = bruteforce_match(img0, img1, seg0, seg1, matchmodel, n=5000, cyclic_threshold=4, dev='cpu')
+        output  = bruteforce_match(img0, img1, seg0, seg1, matchmodel, n=5000, cyclic_threshold=4, dev='cpu')  #TODO: larger n
         imap    = interpolation_map(output['points0'], output['points1'], img0.shape[-2:])
     else:
         imap   = np.load(f'{filename0}.{os.path.basename(filename1)}.imap.npy').astype('float32')
@@ -36,8 +36,6 @@ def process(filename0, filename1, corrections=None, points0=None, points1=None):
             scipy.ndimage.map_coordinates(imap[...,0], corrections_p1.T, order=1), #TODO: use scipy.interpolate.LinearNDInterpolator
             scipy.ndimage.map_coordinates(imap[...,1], corrections_p1.T, order=1),
         ], axis=-1)
-        #output['points0'] = np.concatenate([output['points0'], corrections_p0])
-        #output['points1'] = np.concatenate([output['points1'], corrections_p1])
         output['points0'] = np.concatenate([points0, corrections_p0])
         output['points1'] = np.concatenate([points1, corrections_p1])
         imap    = interpolation_map(output['points0'], output['points1'], seg0.shape)
