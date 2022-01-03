@@ -129,6 +129,9 @@ def bruteforce_match(img0, img1, seg0, seg1, contrastive_model, n=100, ratio_thr
         result['scores']  = np.concatenate([result['scores'],  score[all_ok]])
         result['ratios']  = np.concatenate([result['ratios'],  ratio[all_ok]])
     result['matched_percentage'] = len(result['points0']) / np.int32(len(skl_p0))
+    _p0,_p1 = filter_points(result['points0'], result['points1'])
+    result['points0'] = _p0
+    result['points1'] = _p1
     return result
 
 def extract_descriptors(x, pts_yx:list, bx_size=64, dsc_size=16):
@@ -140,12 +143,14 @@ def extract_descriptors(x, pts_yx:list, bx_size=64, dsc_size=16):
 
 def filter_points(p0, p1, threshold=50):
     delta  = (p1-p0)
-    median = np.median(delta, axis=0)
+    median = np.median(delta, axis=0)  #TODO: median not optimal
     dev    = ((delta - median)**2).sum(-1)**0.5
     return p0[dev<threshold], p1[dev<threshold]
 
 def interpolation_map(p0,p1, shape):
     '''Creates a map with coordinates from image1 to image0 according to matched points p0 and p1'''
+    #if len(p0)<10:  #TODO
+    #    return None
     #direction vectors from each point1 to corresponding point0
     delta = (p1 - p0).astype('float32')
     

@@ -1,26 +1,23 @@
 
 
 
-function downloadURI(uri, name) {
-    var link = document.createElement("a");
-    // If you don't know the name or want to use
-    // the webserver default set name = ''
-    link.setAttribute('download', name);
-    link.href = uri;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+//downloads an element from the uri (to the user hard drive)
+function downloadURI(filename, uri) {
+  var element = document.createElement('a');
+  element.setAttribute('href', uri);
+  element.setAttribute('download', filename);
+  element.style.display = 'none';
+  document.body.appendChild(element);
+  element.click();
+  document.body.removeChild(element);
 }
 
-//download a text file with context `text`
-function download_text(filename, text) {
-    var element = document.createElement('a');
-    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
-    element.setAttribute('download', filename);
-    element.style.display = 'none';
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+function download_text(filename, text){
+  return downloadURI(filename, 'data:text/plain;charset=utf-8,'+encodeURIComponent(text))
+}
+
+function download_blob(filename, blob){
+  return downloadURI(filename, URL.createObjectURL(blob));
 }
 
 
@@ -82,3 +79,37 @@ function show_nothing_to_download_popup(id_string){
                         delay    : {'show':0, 'hide':0}, duration:0,
                         content  : 'Nothing to download'}).popup('show');
 }
+
+
+//fetch request that returns a blob
+function fetch_as_blob(uri){
+  return fetch(uri).then(r => r.ok? r.blob() : undefined);
+}
+
+//called when user clicks on the download button in a root tracking accordion item
+async function on_download_tracking_single(event){
+    var filename0 = $(event.target).closest('[filename0]').attr('filename0')
+    var filename1 = $(event.target).closest('[filename1]').attr('filename1')
+    var tracking_data = global.input_files[filename0].tracking_results[filename1];
+    if(tracking_data==undefined)
+      return;
+    
+    var zipdata  = {};
+    zipdata[tracking_data.growthmap] = fetch_as_blob('/images/'+tracking_data.growthmap)
+    var jsondata = {
+      filename0 : filename0,
+      filename1 : filename1,
+      points0   : tracking_data.points0,
+      points1   : tracking_data.points1,
+    }
+    zipdata[`${filename0}.${filename1}.json`] = JSON.stringify(jsondata);
+
+    var zip = new JSZip();
+    for(var fname in zipdata){
+      zip.file(fname, await zipdata[fname], {binary:true});
+    }
+    zip.generateAsync({type:"blob"}).then( blob => {
+      download_blob( `${filename0}.${filename1}.zip`, blob  );
+    } );
+}
+
