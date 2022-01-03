@@ -72,6 +72,7 @@ var RootTracking = new function() {
             var $chkbx = $(`[filename0="${filename0}"][filename1="${filename1}"] .view-menu-popup .checkbox`)
             $chkbx.removeClass('disabled').checkbox('set checked').checkbox({onChange:function(){
                 $overlay.toggle($chkbx.checkbox('is checked'));
+                //TODO: also toggle svg
             }})
             global.input_files[filename0].tracking_results[filename1] = data;
             delete_image(filename0);
@@ -125,6 +126,16 @@ var RootTracking = new function() {
         
         //console.log('>', [H,W], [html_x_abs, html_y_abs], [html_x_rel, html_y_rel], [svg_x_abs, svg_y_abs], xform)
         return [svg_x_abs, svg_y_abs];
+    }
+
+    var get_viewport_coordinates_of_image = function(img){
+        var $viewbox    = $(img).parent()
+        var topleft     = [$viewbox.parent().offset().left, $viewbox.parent().offset().top]
+        var bottomright = [topleft[0]+$viewbox.width(), topleft[1]+$viewbox.height()]
+        return {
+            topleft:    page2img_coordinates(topleft,     img, $viewbox),
+            bottomright:page2img_coordinates(bottomright, img, $viewbox),
+        }
     }
 
     this.on_svg_wheel = function(event){
@@ -286,6 +297,16 @@ var RootTracking = new function() {
                 return points[i];
     }
 
+    var clip_point_to_viewport = function(xy, img){
+        var viewport = get_viewport_coordinates_of_image(img)
+        return [
+            Math.max(Math.min(xy[0], viewport.bottomright[0]), viewport.topleft[0]),
+            Math.max(Math.min(xy[1], viewport.bottomright[1]), viewport.topleft[1]),
+        ]
+    }
+
+    //highlights a point closest to `xy` in the left image and the corresponding point in the right image
+    //TODO: accept a point from the right image
     var highlight_closest_matched_point = function(filename0, filename1, xy){
         var tracking_results = global.input_files[filename0].tracking_results[filename1]
         if(tracking_results==undefined)
@@ -300,29 +321,23 @@ var RootTracking = new function() {
         var idx = find_closest_point([xy[1], xy[0]], tracking_results.points0, true, 3)  //FIXME: or points1
         if(idx==undefined)
             return;
-        var p0  = tracking_results.points0[idx];
-        var p1  = tracking_results.points1[idx];
+        var p0_yx  = tracking_results.points0[idx];
+        var p1_yx  = tracking_results.points1[idx];
+        var img0   = $svg0.siblings('.left-image')[0]
+        var img1   = $svg1.siblings('.right-image')[0]
+        var p0_xy  = clip_point_to_viewport([p0_yx[1],p0_yx[0]], img0)
+        var p1_xy  = clip_point_to_viewport([p1_yx[1],p1_yx[0]], img1)
 
+        const attrs = {
+            r    : 3,
+            fill : "cyan",
+            index: idx,
+        };
         var $point0     = $(document.createElementNS('http://www.w3.org/2000/svg','circle'));
-        const attrs0 = {
-            cx   : p0[1],
-            cy   : p0[0],
-            r    : 3,
-            fill : "blue",
-            index: idx,
-        };
-        $point0.attr(attrs0).addClass('highlighted-matched-point');
-        $svg0.append($point0);
-
         var $point1     = $(document.createElementNS('http://www.w3.org/2000/svg','circle'));
-        const attrs1 = {
-            cx   : p1[1],
-            cy   : p1[0],
-            r    : 3,
-            fill : "blue",
-            index: idx,
-        };
-        $point1.attr(attrs1).addClass('highlighted-matched-point');
+        $point0.attr(attrs).attr({cx:p0_xy[0], cy:p0_xy[1]}).addClass('highlighted-matched-point');
+        $point1.attr(attrs).attr({cx:p1_xy[0], cy:p1_xy[1]}).addClass('highlighted-matched-point');
+        $svg0.append($point0);
         $svg1.append($point1);
     }
 
