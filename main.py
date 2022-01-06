@@ -1,4 +1,4 @@
-import webbrowser, os, tempfile, io, sys, time
+import webbrowser, os, tempfile, io, sys, time, json
 import glob, shutil
 import warnings
 warnings.simplefilter('ignore')
@@ -69,8 +69,10 @@ def images(imgname):
 @app.route('/process_image/<imgname>')
 def process_image(imgname):
     fullpath  = os.path.join(TEMPFOLDER.name, imgname)
-    stats     = processing.process_image( fullpath )
-    return flask.jsonify({'statistics':stats})
+    result    = processing.process_image( fullpath )
+    result['segmentation'] = os.path.basename(result['segmentation'])
+    result['skeleton']     = os.path.basename(result['skeleton'])
+    return flask.jsonify(result)
 
 @app.route('/processing_progress/<imgname>')
 def processing_progress(imgname):
@@ -117,6 +119,16 @@ def process_root_tracking():
     })
     return 'OK'
 
+
+@app.route('/stream')
+def stream():
+    def generator():
+        message_queue = processing.PubSub.subscribe()
+        while 1:
+            event, message = message_queue.get()
+            #TODO: make sure message does not contain \n
+            yield f'event:{event}\ndata: {json.dumps(message)}\n\n'
+    return flask.Response(generator(), mimetype="text/event-stream")
 
 
 if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not is_debug:  #to avoid flask starting twice

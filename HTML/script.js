@@ -10,9 +10,6 @@ global = {
   input_files      : {},      //{"banana.JPG": FILE}
   metadata         : {},
 
-  cancel_requested : false,   //user requested cancelling either inference or training
-  skeletonize      : false,   //whether to show normal or skeletonized segmentations
-
   settings         : deepcopy(SETTINGS),  //settings that are saved to file (but also some more)
   active_mode      : 'inference',         //inference or training
 };
@@ -26,6 +23,7 @@ const FILE = {
   mask:          undefined,    //javascript file object (optional)
   training_mask: undefined,    //javascript file object (optional)
   statistics:    undefined,    //dict e.g: {"sum":9999, ...}
+  detection_results: {},       //dict e.g. {statistics:{}, segmentation:"XX.png", skeleton:"XX.png"}
   tracking_results : {},       //dict e.g: {'right-image.jpg':data}
 };
 
@@ -38,17 +36,9 @@ const FILE = {
 
 function init(){
   load_settings();
+  setup_sse();
 }
 
-
-//update the accordion file list/table
-function update_inputfiles_list(){
-  var $filestable = $('#filetable');
-      $filestable.find('tbody').html('');
-  for(f of Object.values(global.input_files)){
-      $("#filetable-item-template").tmpl([{filename:f.name}]).appendTo($filestable.find('tbody'));
-  }
-}
 
 //set global.input_files and update ui
 function set_input_files(files){
@@ -59,7 +49,7 @@ function set_input_files(files){
   for(var f of files)
     global.input_files[f.name] = Object.assign({}, deepcopy(FILE), {name: f.name, file: f});
   
-    update_inputfiles_list();
+  RootDetection.update_inputfiles_list();
   RootTracking.set_input_files(files);
 }
 
@@ -77,100 +67,18 @@ function on_inputfolder_select(input){
   set_input_files(files);
 }
 
-//sends an image and mark it as an exclusion mask
-function upload_mask(inputfilename){
-  var maskfile = global.input_files[inputfilename].mask;
-  var formData = new FormData();
-  formData.append('files', maskfile );
-  formData.append('filename', `mask_${filebasename(inputfilename)}.png` );
-  result = $.ajax({
-      url: 'file_upload',      type: 'POST',
-      data: formData,          async: false,
-      cache: false,            contentType: false,
-      enctype: 'multipart/form-data',
-      processData: false,
-  });
-  return result;
-}
 
-
-
-
-//send an image to flask and request to process it
-function process_file(filename){
-  $(`[id="dimmer_${filename}"]`).dimmer('show');
-  $process_button = $(`.ui.primary.button[filename="${filename}"]`);
-  $process_button.html(`<div class="ui active tiny inline loader"></div> Processing...`);
-  set_processed(filename, false);
-
-  function progress_polling(){
-    $.get(`/processing_progress/${filename}`, function(data) {
-        if(!global.input_files[filename].processed){
-          $process_button = $(`.ui.primary.button[filename="${filename}"]`);
-          $process_button.html(`<div class="ui active tiny inline loader"></div> Processing...${Math.round(data*100)}%`);
-          setTimeout(progress_polling,1000);
-        }
-    });
-  }
-  setTimeout(progress_polling,1000);
-
-
-
-  upload_file_to_flask('/file_upload', global.input_files[filename].file);
-  if(!!global.input_files[filename].mask)
-    upload_mask(filename);
-  
-  //send a processing request to python update gui with the results
-  return $.get(`/process_image/${filename}`).done(function(data){
-      set_processed(filename, true);
-      global.input_files[filename].statistics = data.statistics;
-      
-      var url = src_url_for_segmented_image(filename);
-      $(`[filename="${filename}"]`).find('img.segmented').attr('src', url);
-      $(`[id="dimmer_${filename}"]`).dimmer('hide');
-      $process_button.html(`Process Image`);
-
-      delete_image(filename);
-    });
-}
-
-//send command to delete a file from the server's temporary folder (to not waste space)
-function delete_image(filename){
-  $.get(`/delete_image/${filename}`);
-}
-
-
-//called when user clicks on a file table row to open it
-function on_accordion_open(x){
-  var contentdiv = this.find('.content');
-  var imgelement = contentdiv.find('.input-image');
-  var content_already_loaded = !!imgelement.attr('src')
-  if(content_already_loaded)
-    return;
-  //load full image
-  var filename   = contentdiv.attr('filename');
-  var file       = global.input_files[filename].file;
-  upload_file_to_flask('/file_upload',file).done(()=>{
-    imgelement.attr('src', `/images/${filename}.jpg`);
-    imgelement.on('load', ()=>{delete_image(filename);})
-    if(!global.input_files[filename].processed)
-      contentdiv.find('.ui.dimmer').dimmer({'closable':false}).dimmer('show');
-  });
-}
-
-//called when user clicks the (single image) 'Process' button
-function on_process_image(e){
-  var filename = $(e.target).closest('[filename]').attr('filename');
-  process_file(filename);
-}
 
 //called when user clicks the 'Process all' button
 function process_all(){
-  $button = $('#process-all-button')
+  var $button = $('#process-all-button')
 
-  j=0;
+  let cancel_requested = false;
+  $('#cancel-button').on('click', ()=>{cancel_requested = true;})
+
+  var j=0;
   async function loop_body(){
-    if(j>=Object.values(global.input_files).length || global.cancel_requested ){
+    if(j>=Object.values(global.input_files).length || cancel_requested ){
       $button.html('<i class="play icon"></i>Process All Images');
       $('#cancel-button').hide();
       return;
@@ -180,53 +88,13 @@ function process_all(){
 
     f = Object.values(global.input_files)[j];
     //if(!f.processed)  //re-processing anyway, the model may have been retrained
-      await process_file(f.name);
+      await RootDetection.process_file(f.name);
 
     j+=1;
     setTimeout(loop_body, 1);
   }
-  global.cancel_requested = false;
   setTimeout(loop_body, 1);  //using timeout to refresh the html between iterations
 }
-
-//called when user clicks the 'Cancel' button
-function on_cancel(){
-  global.cancel_requested = true;
-  if(global.active_mode=='training'){
-    $.get('/stop_training');
-    $('#cancel-button').html('<div class="ui active tiny inline loader"></div>Cancelling...');
-  }
-}
-
-
-
-
-
-
-
-
-
-//returns the correct url for the segmented <img>, depending on whether global.skeletonize is set
-function src_url_for_segmented_image(filename){
-  if(!global.input_files[filename].processed)
-    return "";
-  else if(global.skeletonize)
-    return `/images/skeletonized_${filename}.png?=${new Date().getTime()}`
-  else
-    return `/images/segmented_${filename}.png?=${new Date().getTime()}`
-}
-
-function set_skeletonized(x){
-  global.skeletonize = !!x;
-  for(var fname in global.input_files){
-    var img_element = $(`[filename="${fname}"]`).find('img.segmented');
-    if(!!img_element.attr('src') && !img_element.attr('src').startsWith('blob')){
-      var url         = src_url_for_segmented_image(fname);
-      img_element.attr('src', url);
-    }
-  }
-}
-
 
 
 function wildcard_test(wildcard_pattern, str) {
@@ -241,13 +109,10 @@ function wildcard_test(wildcard_pattern, str) {
 
 //called when user selected exclusion masks (in the 'File' menu)
 function on_inputmasks_select(input){
-  console.log(input);
-  for(maskfile of input.target.files){
-    //var maskfile     = input.target.files[i];
+  for(var maskfile of input.target.files){
     var maskbasename = filebasename(maskfile.name);
 
     for(inputfile of Object.values(global.input_files)){
-      //if(filebasename(inputfile.name) == maskbasename){
       if( wildcard_test(maskbasename, filebasename(inputfile.name)) ){
         console.log('Matched mask for input file ',inputfile.name);
 
@@ -259,7 +124,8 @@ function on_inputmasks_select(input){
         set_processed(inputfile.name, false);
         $(`[id="dimmer_${inputfile.name}"]`).dimmer('show');
 
-        inputfile.mask = maskfile;
+        var new_name   = `mask_${filebasename(inputfile.name)}.png`
+        inputfile.mask = rename_file(maskfile, new_name)
       }
     }
   }
@@ -292,4 +158,11 @@ function set_processed(filename, value){
   global.input_files[filename].processed = !!value;
 }
 
+
+//set up server-side events
+function setup_sse(){
+  global.event_source = new EventSource('/stream');
+  //global.event_source.onmessage = (msg => console.log('>>',msg));
+  global.event_source.onerror   = (x) => console.error('SSE Error', x);
+}
 

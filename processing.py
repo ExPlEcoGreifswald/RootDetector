@@ -1,11 +1,6 @@
-import os
-
-import glob
-#import dill
-#dill._dill._reverse_typemap['ClassType'] = type
+import os, glob, threading, json, pickle
 import numpy as np
-import threading
-import json
+
 
 #import tensorflow as tf
 #import tensorflow.keras as keras
@@ -14,8 +9,8 @@ import json
 #print('Keras version: %s'%keras.__version__)
 
 import PIL.Image
-import skimage.io         as skio
-import skimage.util       as skimgutil
+#import skimage.io         as skio
+#import skimage.util       as skimgutil
 
 import postprocessing
 
@@ -36,28 +31,26 @@ class GLOBALS:
 
 
 def init():
-    pass
-    #load_settings()
+    load_settings()
 
 def load_model(name):
     '''Loads the root segmentation model'''
-    filepath             = os.path.join('models', name+'.dill')
+    filepath             = os.path.join('models/root_detection_models', name+'.pkl')
     print('Loading model', filepath)
-    GLOBALS.model        = dill.load(open(filepath, 'rb'))
+    GLOBALS.model        = pickle.load(open(filepath, 'rb'))
     GLOBALS.active_model = name
     print('Finished loading', filepath)
 
 def load_exmask_model(name):
     '''Loads the exclusion mask model'''
-    filepath                    = os.path.join('models/exclusionmask_models', name+'.dill')
+    filepath                    = os.path.join('models/exclusionmask_models', name+'.pkl')
     print('Loading model', filepath)
-    GLOBALS.exmask_model        = dill.load(open(filepath, 'rb'))
+    GLOBALS.exmask_model        = pickle.load(open(filepath, 'rb'))
     GLOBALS.exmask_active_model = name
     print('Finished loading', filepath)
 
 
 def load_image(path):
-    #x = GLOBALS.model.load_image(path)
     x = PIL.Image.open(path) / np.float32(255)
     x = x[...,np.newaxis] if len(x.shape)==2 else x
     x = x[...,:3]
@@ -68,9 +61,11 @@ def process_image(image_path):
     output_folder = os.path.dirname(image_path)
     image         = load_image(image_path)
     with GLOBALS.processing_lock:
-        segmentation_result = GLOBALS.model.process_image(image, progress_callback=progress_callback_for_image(basename))
+        progress_callback=lambda x: PubSub.publish({'progress':x, 'image':os.path.basename(image_path), 'stage':'roots'})
+        segmentation_result = GLOBALS.model.process_image(image, progress_callback=progress_callback)
         if GLOBALS.exmask_enabled:
-            exmask_result = GLOBALS.exmask_model.process_image(image, progress_callback=progress_callback_for_image(basename))
+            progress_callback=lambda x: PubSub.publish({'progress':x, 'image':os.path.basename(image_path), 'stage':'mask'})
+            exmask_result = GLOBALS.exmask_model.process_image(image, progress_callback=progress_callback)
             segmentation_result = paste_exmask(segmentation_result, exmask_result)
     
     skelresult   = postprocessing.skeletonize(segmentation_result)
@@ -78,17 +73,24 @@ def process_image(image_path):
 
     stats        = postprocessing.compute_statistics(segmentation_result, skelresult, mask)
 
-    result       = result_to_rgb(segmentation_result)
-    skelresult   = result_to_rgb(skelresult)
+    result_rgb     = result_to_rgb(segmentation_result)
+    skelresult_rgb = result_to_rgb(skelresult)
 
     if mask is not None:
-        result       = add_mask(result, mask)
-        skelresult   = add_mask(skelresult, mask)
+        result_rgb       = add_mask(result_rgb, mask)
+        skelresult_rgb   = add_mask(skelresult_rgb, mask)
 
-    write_as_png(os.path.join(output_folder, f'segmented_{basename}.png'), result)
-    write_as_png(os.path.join(output_folder, f'skeletonized_{basename}.png'), skelresult)
 
-    return stats
+    segmentation_fname = f'segmented_{basename}.png'
+    skeleton_fname     = f'skeletonized_{basename}.png'
+    write_as_png(os.path.join(output_folder, segmentation_fname), result_rgb)
+    write_as_png(os.path.join(output_folder, skeleton_fname), skelresult_rgb)
+
+    return {
+        'segmentation': segmentation_fname,
+        'skeleton'    : skeleton_fname,
+        'statistics'  : stats,
+    }
 
 def result_to_rgb(x):
     assert len(x.shape)==2
@@ -99,10 +101,11 @@ def result_to_rgb(x):
     return x
 
 def write_as_png(path,x):
-    x = tf.cast(x, tf.float32)
-    x = x[...,tf.newaxis] if len(x.shape)==2 else x
-    x = x*255 if tf.reduce_max(x)<=1 else x
-    tf.io.write_file(path, tf.image.encode_png(  tf.cast(x, tf.uint8)  ))
+    x = np.asarray(x).astype('float32')
+    x = x[...,np.newaxis] if len(x.shape)==2 else x
+    x = x*255 if np.max(x)<=1 else x
+    x = x.astype('uint8')
+    PIL.Image.fromarray(x).save(path)
 
 
 def write_as_jpeg(path,x):
@@ -129,9 +132,9 @@ def load_settings():
     set_settings(settings)
 
 def get_settings():
-    modelfiles = glob.glob('models/*.dill')
+    modelfiles = glob.glob('models/root_detection_models/*.pkl')
     modelnames = [os.path.splitext(os.path.basename(fname))[0] for fname in modelfiles]
-    exmask_modelfiles = glob.glob('models/exclusionmask_models/*.dill')
+    exmask_modelfiles = glob.glob('models/exclusionmask_models/*.pkl')
     exmask_modelnames = [os.path.splitext(os.path.basename(fname))[0] for fname in exmask_modelfiles]
     s = dict(
         models         = modelnames,
@@ -168,11 +171,30 @@ def search_mask(input_image_path):
     pattern  = os.path.join( os.path.dirname(input_image_path), 'mask_'+basename+'*.png' )
     masks    = glob.glob(pattern)
     if len(masks)==1:
-        m = skio.imread(masks[0])[...,:3]
-        m = skimgutil.img_as_float32(m)
-        return m
+        return PIL.Image.open(masks[0]).convert('RGB') / np.float32(255)
 
 def add_mask(image_rgb, mask):
     masked_image  = np.where( np.any(mask, axis=-1, keepdims=True)>0, mask, image_rgb )
     return masked_image
+
+
+
+import queue
+
+class PubSub:
+    subscribers = []
+
+    @classmethod
+    def subscribe(cls):
+        q = queue.Queue(maxsize=5)
+        cls.subscribers.append(q)
+        return q
+
+    @classmethod
+    def publish(cls, msg, event='message'):
+        for i in reversed(range(len(cls.subscribers))):
+            try:
+                cls.subscribers[i].put_nowait((event, msg))
+            except queue.Full:
+                del cls.subscribers[i]
 

@@ -31,6 +31,15 @@ function upload_file_to_flask(url, file){
     });
 }
 
+function rename_file(file, newname){
+    return new File([file], newname, {type: file.type});
+}
+
+
+//send command to delete a file from the server's temporary folder (to not waste space)
+function delete_image(filename){
+    $.get(`/delete_image/${filename}`);
+}
 
 function set_imgsrc_from_file($img, file){
     if(file.type=="image/tiff" || file.name.endsWith('.tif') || file.name.endsWith('.tiff')){
@@ -51,6 +60,13 @@ function set_imgsrc_from_file($img, file){
     } else {
         $img.attr('src', URL.createObjectURL(file));
     }
+}
+
+function url_for_image(imagefile, cachebuster=true){
+    var url = `/images/${imagefile}`
+    if(cachebuster)
+        url = url + `?_=${Date.now()}`
+    return url
 }
 
 

@@ -14,10 +14,6 @@ function save_settings(_){
         $('#settings-ok-button').removeClass('loading');
         console.log('Settings:',x)
     });
-  
-    var skeletonize  = $("#settings-skeletonize").checkbox('is checked');
-    set_skeletonized(skeletonize);
-    //set_training_mode($('#settings-enable-retraining').checkbox('is checked'));
 
     //do not close the dialog, doing this manually
     return false;

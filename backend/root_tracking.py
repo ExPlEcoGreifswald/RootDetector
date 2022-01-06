@@ -12,6 +12,7 @@ import PIL.Image
 
 
 def process(filename0, filename1, corrections=None, points0=None, points1=None):
+    #TODO: wrap in threading.Lock
     print(f'Performing root tracking on files {filename0} and {filename1}')
     segmodel   = cloudpickle.load(open('models/root_tracking_models/019c_segmodel.full.cpkl', 'rb'))
     matchmodel = cloudpickle.load(open('models/root_tracking_models/019c_contrastive_model.full.cpkl', 'rb'))
@@ -109,7 +110,7 @@ def bruteforce_match(img0, img1, seg0, seg1, contrastive_model, n=100, ratio_thr
         score   = dists_i.max(-1)[0]
         #set dists within 64px of yx1 to zero to find second largest peak
         dists_i_ = dists_i.clone().numpy()
-        dists_i_[np.abs(skl_p1[None] - yx1[:,None]).min(-1)<64] = 0
+        dists_i_[np.abs(skl_p1[None] - yx1[:,None]).min(-1)<64] = 0   #TODO: max instead of min
         score_k2 = dists_i_.max(-1)
         ratio    = score/score_k2
         

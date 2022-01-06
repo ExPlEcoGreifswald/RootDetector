@@ -20,6 +20,10 @@ function download_blob(filename, blob){
   return downloadURI(filename, URL.createObjectURL(blob));
 }
 
+//fetch request that returns a blob
+function fetch_as_blob(uri){
+  return fetch(uri).then(r => r.ok? r.blob() : undefined);
+}
 
 //called when user clicks on the "download segmented images" button
 async function on_download_processed(){
@@ -28,14 +32,24 @@ async function on_download_processed(){
     return;
   }
 
-  for(f in global.input_files){
-    if(global.input_files[f].processed){
-      processed_f = $(`[filename="${f}"]`).find('img.segmented').attr('src');
-      downloadURI(processed_f, '');
-      //sleep for a few milliseconds because chrome does not allow more than 10 simulataneous downloads
-      await new Promise(resolve => setTimeout(resolve, 250));
+  var zipdata  = {};
+  for(var filename in global.input_files){
+    var f = global.input_files[filename];
+    if(f.processed){
+      var segmentation = fetch_as_blob(url_for_image(f.detection_result.segmentation))
+      var skeleton     = fetch_as_blob(url_for_image(f.detection_result.skeleton))
+      zipdata[`${filename}/${f.detection_result.segmentation}`] = segmentation
+      zipdata[`${filename}/${f.detection_result.skeleton}`]     = skeleton
     }
   }
+
+  var zip = new JSZip();
+  for(var fname in zipdata){
+    zip.file(fname, await zipdata[fname], {binary:true});
+  }
+  zip.generateAsync({type:"blob"}).then( blob => {
+    download_blob( `segmented_images.zip`, blob  );
+  } );
 }
 
 
@@ -81,10 +95,7 @@ function show_nothing_to_download_popup(id_string){
 }
 
 
-//fetch request that returns a blob
-function fetch_as_blob(uri){
-  return fetch(uri).then(r => r.ok? r.blob() : undefined);
-}
+
 
 //called when user clicks on the download button in a root tracking accordion item
 async function on_download_tracking_single(event){
