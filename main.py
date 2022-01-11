@@ -6,20 +6,10 @@ warnings.simplefilter('ignore')
 import flask
 from flask import Flask, escape, request
 
-import processing
-from backend import root_tracking
+import backend
+from backend import root_tracking, root_detection
 
-#need to import all the packages here in the main file because of dill-ed ipython model
-#import tensorflow as tf
-#import tensorflow.keras as keras
-
-import numpy as np
-arange = np.arange
-import skimage.io              as skio
-import skimage.morphology      as skmorph
-import skimage.util            as skimgutil
-
-import PIL
+import PIL.Image
 PIL.Image.MAX_IMAGE_PIXELS = None #Needed to open large images
 
 
@@ -59,7 +49,7 @@ def file_upload():
         fullpath = os.path.join(TEMPFOLDER.name, os.path.basename(filename) )
         f.save(fullpath)
         #save the file additionally as jpg to make sure format is compatible with browser (tiff)
-        processing.write_as_jpeg(fullpath+'.jpg', processing.load_image(fullpath) )
+        backend.write_as_jpeg(fullpath+'.jpg', backend.load_image(fullpath) )
     return 'OK'
 
 @app.route('/images/<imgname>')
@@ -69,14 +59,10 @@ def images(imgname):
 @app.route('/process_image/<imgname>')
 def process_image(imgname):
     fullpath  = os.path.join(TEMPFOLDER.name, imgname)
-    result    = processing.process_image( fullpath )
+    result    = root_detection.process_image( fullpath )
     result['segmentation'] = os.path.basename(result['segmentation'])
     result['skeleton']     = os.path.basename(result['skeleton'])
     return flask.jsonify(result)
-
-@app.route('/processing_progress/<imgname>')
-def processing_progress(imgname):
-    return str(processing.processing_progress(imgname))
 
 
 @app.route('/delete_image/<imgname>')
@@ -91,10 +77,10 @@ def delete_image(imgname):
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
     if request.method=='POST':
-        processing.set_settings(request.get_json(force=True))
+        backend.set_settings(request.get_json(force=True))
         return 'OK'
     elif request.method=='GET':
-        return flask.jsonify(processing.get_settings())
+        return flask.jsonify(backend.get_settings())
 
 @app.route('/process_root_tracking', methods=['GET', 'POST'])
 def process_root_tracking():
@@ -123,7 +109,7 @@ def process_root_tracking():
 @app.route('/stream')
 def stream():
     def generator():
-        message_queue = processing.PubSub.subscribe()
+        message_queue = backend.PubSub.subscribe()
         while 1:
             event, message = message_queue.get()
             #TODO: make sure message does not contain \n
@@ -133,7 +119,7 @@ def stream():
 
 if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not is_debug:  #to avoid flask starting twice
     with app.app_context():
-        processing.init()
+        backend.init()
         if not is_debug:
         	print('Flask started')
         	webbrowser.open('http://localhost:5000', new=2)

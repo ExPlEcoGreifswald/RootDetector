@@ -2,12 +2,14 @@
 function save_settings(_){
     global.settings.active_model = $("#settings-active-model").dropdown('get value');
     global.settings.exmask_model = $("#settings-exclusionmask-model").dropdown('get value');
+    global.settings.tracking_model = $("#settings-tracking-model").dropdown('get value');
 
     $('#settings-ok-button').addClass('loading');
     var data = JSON.stringify({
         active_model: global.settings.active_model,
         exmask_model: global.settings.exmask_model,
         exmask_enabled: global.settings.exmask_enabled,
+        tracking_model: global.settings.tracking_model,
     });
     $.post(`/settings`, data,).done((x)=>{
         $('#settings-dialog').modal('hide');
@@ -31,8 +33,9 @@ function load_settings(){
 
     $.get('/settings').done(function(settings){
         console.log('Loaded settings: ',settings)
-        global.settings.active_model = settings.active_model
-        global.settings.exmask_model = settings.exmask_active_model
+        global.settings.active_model   = settings.active_model
+        global.settings.exmask_model   = settings.exmask_active_model
+        global.settings.tracking_model = settings.tracking_active_model
 
         var models_list = []
         for(var modelname of settings.models)
@@ -49,11 +52,16 @@ function load_settings(){
 
         var $new_name_elements = $("#settings-new-modelname-field");
         (settings.active_model=='')? $new_name_elements.show(): $new_name_elements.hide();
+
+        var trackingmodels_list = []
+        for(var name of settings.tracking_models)
+            trackingmodels_list.push({name:name, value:name, selected:(name==global.settings.tracking_model)})
+        $("#settings-tracking-model").dropdown({values: trackingmodels_list, showOnFocus:false })
     })
 }
 
 
-function set_training_mode(x){
+/*function set_training_mode(x){
     if(x){
       global.active_mode = 'training';
       $('#process-all-button').hide();
@@ -75,7 +83,7 @@ function on_save_model(){
       return;
     }
     $.get('/save_model', {newname:newname}).done(load_settings);
-}
+}*/
 
 
 

@@ -56,12 +56,15 @@ var RootTracking = new function() {
 
     //called when user clicks on the "play" button to perform root tracking
     this.on_process_clicked = function(event){
-        var filename0 = $(event.target).closest("[filename0]").attr("filename0");
-        var filename1 = $(event.target).closest("[filename1]").attr("filename1");
+        var $root     = $(event.target).closest("[filename0][filename1]")
+        var filename0 = $root.attr("filename0");
+        var filename1 = $root.attr("filename1");
 
         console.log(`Sending root tracking request for files ${filename0} and ${filename1}`);
         upload_file_to_flask('/file_upload', global.input_files[filename0].file);
         upload_file_to_flask('/file_upload', global.input_files[filename1].file);
+
+        $root.find('.dimmer').dimmer('show');
         
         //send a processing request to python & update gui with the results
         return $.get(`/process_root_tracking`, {filename0:filename0, filename1:filename1}).done( data => {   //TODO: code re-use
@@ -77,6 +80,7 @@ var RootTracking = new function() {
             global.input_files[filename0].tracking_results[filename1] = data;
             delete_image(filename0);
             delete_image(filename1);
+            $root.find('.dimmer').dimmer('hide');
         });
     };
 

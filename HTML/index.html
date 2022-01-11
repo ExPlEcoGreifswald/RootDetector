@@ -260,6 +260,7 @@
               <div style="display: flex; align-items: flex-start; justify-content: center;" >
                 {{tmpl({position:"left"})  "#tracking-image"}}
                 {{tmpl({position:"right"}) "#tracking-image"}}
+                {{tmpl({}) "#progress-dimmer"}}
               </div>
             </td>
           </tr>
@@ -318,7 +319,7 @@
     </div>-->
     
     <div class="field">
-      <label>Segmentation model</label>
+      <label>Root detection model</label>
       <div class="ui dropdown selection" id="settings-active-model">
         <input type="hidden" name="active-model">
         <i class="dropdown icon"></i>
@@ -345,6 +346,19 @@
         <input type="hidden" name="active-model">
         <i class="dropdown icon"></i>
         <div class="default text">Exclusion mask model</div>
+        <div class="menu">
+          <!--<div class="item" data-value="1">model_1</div>
+          <div class="item" data-value="0">model_2</div>-->
+        </div>
+      </div>
+    </div>
+
+    <div class="field" id="settings-tracking-model-field">
+      <label>Root tracking model</label>
+      <div class="ui dropdown selection" id="settings-tracking-model">
+        <input type="hidden" name="active-model">
+        <i class="dropdown icon"></i>
+        <div class="default text">Root tracking model</div>
         <div class="menu">
           <!--<div class="item" data-value="1">model_1</div>
           <div class="item" data-value="0">model_2</div>-->
