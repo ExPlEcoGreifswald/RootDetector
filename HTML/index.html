@@ -33,6 +33,13 @@
       -ms-interpolation-mode: nearest-neighbor;
       image-rendering: pixelated;
     }
+
+    .left.view-box{
+      margin-right:2px;
+    }
+    .right.view-box{
+      margin-left:2px;
+    }
   </style>
 
 
@@ -245,13 +252,26 @@
                 <a class="item view-menu-button" data-position="bottom left">
                   <i class="eye icon"></i>
                 </a>
-                <div class="ui popup view-menu-popup">
-                  <div class="ui disabled checkbox">
+                <div class="ui flowing popup view-menu-popup">
+                  <div class="ui disabled checkbox show-growthmap-checkbox">
                     <input type="checkbox">
                     <label>Show growth map</label>
                   </div>
+                  <div class="ui divider" style="border:0px;"></div>
+                  <div class="ui disabled checkbox show-matched-points-checkbox">
+                    <input type="checkbox">
+                    <label>Show matched points</label>
+                  </div>
+                  <div class="ui divider" style="border:0px;"></div>
+                  <div class="ui disabled checkbox show-skeleton-points-checkbox">
+                    <input type="checkbox">
+                    <label>Show skeleton points</label>
+                  </div>
                 </div>
-                <script>$('.view-menu-button').last().popup({hoverable:true});</script>
+                <script>
+                  $('.view-menu-button').last().popup({hoverable:true});
+                  $('.view-menu-popup').last().find('.checkbox').checkbox();
+                </script>
 
                 <a class="item" onclick="on_download_tracking_single(event)"><i class="download icon"></i></a>
 
@@ -267,17 +287,17 @@
         </template>
       
         <template id="tracking-image">
-          <div class="unselectable view-box"
-               style="max-width:50%; position:relative; overflow:hidden; margin-right:2px; background-color:grey;"
+          <div class="unselectable view-box ${position}"
+               style="max-width:50%; position:relative; overflow:hidden; background-color:grey;"
                ondblclick ="RootTracking.on_svg_dblclick(event)">
             <div class="transform-box" style="transform: matrix(1,0,0,1,0,0)"
                  onmousedown="RootTracking.on_svg_mousedown(event)"
                  onmousemove="RootTracking.on_svg_mousemove(event)"
                  onwheel    ="RootTracking.on_svg_wheel(event)">
-              <img  class="${position}-image unselectable pixelated" style="max-width:100%; max-height:90vh; pointer-events: none;">
-              <img  class="${position}-overlay unselectable pixelated" 
+              <img  class="${position} input-image unselectable pixelated" style="max-width:100%; max-height:90vh; pointer-events: none;">
+              <img  class="${position} overlay unselectable pixelated" 
                     style="position:absolute; top:0px; left:0px; width:100%; height:100%; pointer-events:none; display:none;">
-              <svg  class="tracking-${position}-overlay-svg"
+              <svg  class="${position} tracking-overlay-svg"
                     style="position:absolute; pointer-events: none;
                            top:0px; left:0px; 
                            width:100%; height:100%;"
@@ -331,7 +351,7 @@
       </div>
     </div>
 
-
+    <div class="ui divider"></div>
     <div class="field">
       <label>Exclusion mask</label>
       <div class="ui toggle checkbox" id="settings-exclusionmask-enable">
@@ -353,6 +373,7 @@
       </div>
     </div>
 
+    <div class="ui divider"></div>
     <div class="field" id="settings-tracking-model-field">
       <label>Root tracking model</label>
       <div class="ui dropdown selection" id="settings-tracking-model">

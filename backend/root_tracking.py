@@ -14,12 +14,10 @@ from backend import GLOBALS
 def process(filename0, filename1, corrections=None, points0=None, points1=None):
     #TODO: wrap in threading.Lock
     print(f'Performing root tracking on files {filename0} and {filename1}')
-    segmodel   = cloudpickle.load(open('models/root_tracking_models/019c_segmodel.full.cpkl', 'rb'))
-
     modelfile  = os.path.join('models/root_tracking_models', GLOBALS.tracking_active_model+'.cpkl')
     matchmodel = cloudpickle.load(open(modelfile, 'rb'))
 
-    if corrections is None:
+    if corrections is None:  #FIXME: better condition would be to check if segmentation/.pkl files exist
         img0    = torchvision.transforms.ToTensor()(PIL.Image.open(filename0))
         img1    = torchvision.transforms.ToTensor()(PIL.Image.open(filename1))
         with GLOBALS.processing_lock:

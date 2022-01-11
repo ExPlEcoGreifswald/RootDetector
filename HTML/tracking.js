@@ -28,7 +28,7 @@ var RootTracking = new function() {
 
     //called when user clicks on a file table row to open it
     this.on_accordion_open = function(){
-        var $imgelement0 = this.find('img.left-image');
+        var $imgelement0 = this.find('img.left.input-image');
         var content_already_loaded = !!$imgelement0.attr('src')
         if(!content_already_loaded){
             var filename0   = this.attr('filename0');
@@ -41,7 +41,7 @@ var RootTracking = new function() {
         }
 
         //TODO: code re-use
-        var $imgelement1 = this.find('img.right-image');
+        var $imgelement1 = this.find('img.right.input-image');
         var content_already_loaded = !!$imgelement1.attr('src')
         if(!content_already_loaded){
             var filename1   = this.attr('filename1');
@@ -68,16 +68,9 @@ var RootTracking = new function() {
         
         //send a processing request to python & update gui with the results
         return $.get(`/process_root_tracking`, {filename0:filename0, filename1:filename1}).done( data => {   //TODO: code re-use
-            console.log(data)
-            paint_matched_points(filename0, filename1, data.points0, data.points1);
-            var $overlay = $(`[filename0="${filename0}"][filename1="${filename1}"] img.left-overlay`)
-            $overlay.attr('src', `/images/${data.growthmap_rgba}?_=${new Date().getTime()}`).show()
-            var $chkbx = $(`[filename0="${filename0}"][filename1="${filename1}"] .view-menu-popup .checkbox`)
-            $chkbx.removeClass('disabled').checkbox('set checked').checkbox({onChange:function(){
-                $overlay.toggle($chkbx.checkbox('is checked'));
-                //TODO: also toggle svg
-            }})
-            global.input_files[filename0].tracking_results[filename1] = data;
+            set_tracking_data(filename0, filename1, data)
+            
+
             delete_image(filename0);
             delete_image(filename1);
             $root.find('.dimmer').dimmer('hide');
@@ -92,18 +85,7 @@ var RootTracking = new function() {
         var svg_xy  = page2img_coordinates([event.pageX, event.pageY], img, $(event.target))
         $svg.find('circle.cursor').attr({cx:svg_xy[0], cy:svg_xy[1]})
 
-        //TODO
-        /*if(event.shiftKey)
-            $(event.target).css('cursor', 'move')
-        else if (event.ctrlKey)
-            $(event.target).css('cursor', 'copy')
-        else
-            $(event.target).css('cursor', 'default')*/
-
-        //FIXME: left or right image
-        var filename0 = $(img).closest('[filename0]').attr('filename0')
-        var filename1 = $(img).closest('[filename1]').attr('filename1')
-        highlight_closest_matched_point(filename0, filename1, svg_xy);
+        highlight_closest_matched_point($svg, svg_xy);  //TODO: check if show matched points is checked
     }
 
     //translate page coordinates xy to img coordinates
@@ -162,8 +144,10 @@ var RootTracking = new function() {
             start_move_image(event)
         else if(event.ctrlKey){
             var removed = remove_point_from_click(event)
-            if(!removed)
-                start_draw_correction(event)
+            if(!removed){
+                single_click_correction(event)
+                drag_line_correction(event)
+            }
         }
     }
 
@@ -192,9 +176,51 @@ var RootTracking = new function() {
         })
     }
 
-    var start_draw_correction = function(mousedown_event){
+    var single_click_correction = function(mousedown_event){
+        var $root   = $(mousedown_event.target).closest("[filename0][filename1]");
+        var $img    = $(mousedown_event.target).find('.input-image')
+        var $svg    = $img.siblings('svg');
+        
+        $(document).one('mouseup', function(mouseup_event){
+            $svg.find('.single-click-correction-point').remove()
+            const attrs = {
+                r    : 3,
+                fill : "pink",
+            };
+            var start_xy = [mousedown_event.pageX, mousedown_event.pageY]
+                start_xy = page2img_coordinates(start_xy, $img[0], $img.parent())
+            var $point0     = $(document.createElementNS('http://www.w3.org/2000/svg','circle'));
+            $point0.attr(attrs).attr({cx:start_xy[0], cy:start_xy[1]}).addClass('single-click-correction-point');
+            $svg.append($point0);
+
+            var $single_point_left  = $root.find('svg.left.tracking-overlay-svg .single-click-correction-point')
+            var $single_point_right = $root.find('svg.right.tracking-overlay-svg .single-click-correction-point')
+            if($single_point_left.length>0 && $single_point_right.length>0){
+                var filename0 = $root.attr("filename0");
+                var filename1 = $root.attr("filename1");
+                var tracking_results = global.input_files[filename0].tracking_results[filename1];
+                if(tracking_results==undefined){
+                    tracking_results = {points0:[], points1:[]};
+                    global.input_files[filename0].tracking_results[filename1] = tracking_results;
+                }
+                tracking_results.points0.push([Number($single_point_left.attr('cy')),  Number($single_point_left.attr('cx')) ])
+                tracking_results.points1.push([Number($single_point_right.attr('cy')), Number($single_point_right.attr('cx'))])
+                paint_matched_points(filename0, filename1, tracking_results.points0, tracking_results.points1)
+
+                $single_point_left.remove()
+                $single_point_right.remove()
+                $root.find('.show-matched-points-checkbox').checkbox('check') //TODO: refactor
+            }
+
+        }).one('mousemove', function(mousemove_event) {
+            //mouse moved, not a single click anymore, cancel
+            $(document).off('mouseup');
+        });
+    }
+
+    var drag_line_correction = function(mousedown_event){
         //TODO: check if growth map is loaded
-        var $img    = $(mousedown_event.target).find('.left-image')
+        var $img    = $(mousedown_event.target).find('.left.input-image')
         if($img.get().length==0)
             return;
         var $svg     = $img.siblings('svg');
@@ -253,30 +279,51 @@ var RootTracking = new function() {
 
     //called when user clicks on the "check" button to apply manual corrrections to the growth map
     this.on_apply_corrections = function(event){
+        var $root             = $(event.target).closest("[filename0][filename1]");
         //TODO: check if growth map is loaded
-        var $svg = $(event.target).closest("[filename0]").find('svg.tracking-left-overlay-svg')
+        var $svg              = $root.find('svg.left.tracking-overlay-svg')
         var $correction_lines = $svg.find('polyline.correction-line')
         var points_str        = $correction_lines.get().map(x=>x.getAttribute('points'));
         var points            = points_str.map( x => x.split(/[, ]/g).filter(Boolean).map(Number) )
 
-        var filename0 = $(event.target).closest("[filename0]").attr("filename0");
-        var filename1 = $(event.target).closest("[filename1]").attr("filename1");
+        var filename0 = $root.attr("filename0");
+        var filename1 = $root.attr("filename1");
         var tracking_results = global.input_files[filename0].tracking_results[filename1];
         var post_data = {
             filename0:filename0, points0:tracking_results.points0,
             filename1:filename1, points1:tracking_results.points1,
             corrections:points
         }
+        $root.find('.dimmer').dimmer('show');
+
+        //TODO: if tracking_results==undefined do full tracking request (incl file upload)
 
         console.log(`Sending root tracking request for files ${filename0} and ${filename1} with corrections ${points}`);
-        $.post('/process_root_tracking', JSON.stringify(post_data)).done( data => {   //TODO: code re-use
-            console.log(data)
-            paint_matched_points(filename0, filename1, data.points0, data.points1);
-            $(`[filename0="${filename0}"] img.left-overlay`).attr('src', `/images/${data.growthmap_rgba}?_=${new Date().getTime()}`)  //FIXME: WRONG! see above
-            global.input_files[filename0].tracking_results[filename1] = data;
-
+        $.post('/process_root_tracking', JSON.stringify(post_data)).done( data => {
+            set_tracking_data(filename0, filename1, data);
+        }).always( ()=>{
             $correction_lines.remove()
-        });
+            $root.find('.dimmer').dimmer('hide');
+        } );
+    }
+
+    var set_tracking_data = function(filename0, filename1, data){
+        console.log('Tracking results: ', data)
+        global.input_files[filename0].tracking_results[filename1] = data;
+        paint_matched_points(filename0, filename1, data.points0, data.points1);
+
+        var $root    = $(`[filename0="${filename0}"][filename1="${filename1}"]`);
+        var $overlay = $root.find(`img.left.overlay`)
+            $overlay.attr('src', url_for_image(data.growthmap_rgba))
+        var $chkbx0 = $root.find('.show-growthmap-checkbox')
+            $chkbx0.removeClass('disabled').checkbox({onChange:()=>{
+                $overlay.toggle($chkbx0.checkbox('is checked'));
+        }}).checkbox('check')
+        var $chkbx1 = $root.find('.show-matched-points-checkbox')
+            $chkbx1.removeClass('disabled').checkbox({onChange:()=>{
+            $root.find('svg .matched-points').toggle($chkbx1.checkbox('is checked'));
+            //TODO: also the .highlighted-matched-point
+        }}).checkbox('set checked').checkbox('uncheck')
     }
 
 
@@ -284,9 +331,9 @@ var RootTracking = new function() {
         var p0_str = p0.map(p => `${p[1]},${p[0]}`).join(' ')
         var p1_str = p1.map(p => `${p[1]},${p[0]}`).join(' ')
 
-        var $parent = $(`[filename0="${filename0}"][filename1="${filename1}"]`)
-        var $svg0 = $parent.find(`.tracking-left-overlay-svg`)
-        var $svg1 = $parent.find(`.tracking-right-overlay-svg`)
+        var $root = $(`[filename0="${filename0}"][filename1="${filename1}"]`)
+        var $svg0 = $root.find(`.left.tracking-overlay-svg`)
+        var $svg1 = $root.find(`.right.tracking-overlay-svg`)
         $svg0.find('polyline.matched-points').attr('points', p0_str);
         $svg1.find('polyline.matched-points').attr('points', p1_str);
     }
@@ -309,26 +356,29 @@ var RootTracking = new function() {
         ]
     }
 
-    //highlights a point closest to `xy` in the left image and the corresponding point in the right image
-    //TODO: accept a point from the right image
-    var highlight_closest_matched_point = function(filename0, filename1, xy){
+    //highlight a point closest to `xy` in one image and the corresponding point in the other image
+    var highlight_closest_matched_point = function($svg, xy){
+        var $root            = $svg.closest('[filename0][filename1]');
+        var filename0        = $root.attr('filename0')
+        var filename1        = $root.attr('filename1')
         var tracking_results = global.input_files[filename0].tracking_results[filename1]
         if(tracking_results==undefined)
             return;
-        
-        var $parent = $(`[filename0="${filename0}"][filename1="${filename1}"]`)  //FIXME? pass $svg as argument
-        var $svg0 = $parent.find(`.tracking-left-overlay-svg`)
-        var $svg1 = $parent.find(`.tracking-right-overlay-svg`)
+
+        var $svg0 = $root.find(`.left.tracking-overlay-svg`)
+        var $svg1 = $root.find(`.right.tracking-overlay-svg`)
         $svg0.find('circle.highlighted-matched-point').remove()
         $svg1.find('circle.highlighted-matched-point').remove()
 
-        var idx = find_closest_point([xy[1], xy[0]], tracking_results.points0, true, 3)  //FIXME: or points1
+        var position = $svg.hasClass('left')? 'left' : 'right';
+        var points = (position=='left')? tracking_results.points0 : tracking_results.points1;
+        var idx = find_closest_point([xy[1], xy[0]], points, true, 3)
         if(idx==undefined)
             return;
         var p0_yx  = tracking_results.points0[idx];
         var p1_yx  = tracking_results.points1[idx];
-        var img0   = $svg0.siblings('.left-image')[0]
-        var img1   = $svg1.siblings('.right-image')[0]
+        var img0   = $svg0.siblings('.left.input-image')[0]
+        var img1   = $svg1.siblings('.right.input-image')[0]
         var p0_xy  = clip_point_to_viewport([p0_yx[1],p0_yx[0]], img0)
         var p1_xy  = clip_point_to_viewport([p1_yx[1],p1_yx[0]], img1)
 
