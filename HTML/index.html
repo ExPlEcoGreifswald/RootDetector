@@ -166,9 +166,9 @@
               </i>
             </td>
 
-            <td style="display:flex; justify-content: space-around;" onclick="event.stopPropagation();">
+            <!--<td style="display:flex; justify-content: space-around;" onclick="event.stopPropagation();">
               <i class="grey close icon"></i>
-            </td>
+            </td>-->
           </tr>
           <tr style="display:none" filename="${filename}">
             <td colspan="5" class="ui content" style="padding:0px; padding-bottom:10px"">
@@ -237,13 +237,19 @@
               <label>${filename1}</label>
             </td>
 
-            <td style="display:flex; justify-content: space-around;" onclick="event.stopPropagation();">
+            <!--<td style="display:flex; justify-content: space-around;" onclick="event.stopPropagation();">
               <i class="grey close icon"></i>
-            </td>
+            </td>-->
           </tr>
 
           <tr style="display:none" filename0="${filename0}" filename1="${filename1}">
             <td colspan="5" class="ui content" style="padding:0px; padding-bottom:10px;">
+              <div class="loading-message" style="display:flex;justify-content: center;">
+                <i class="spinner loading icon"></i>
+                Loading...
+              </div>
+
+              <div class="content">
               <div class="ui bottom attached secondary icon menu" style="border-top-width: 0px;">
                 <a class="item" onclick="RootTracking.on_process_clicked(event)"><i class="play icon"></i></a>
 
@@ -262,11 +268,6 @@
                     <input type="checkbox">
                     <label>Show matched points</label>
                   </div>
-                  <div class="ui divider" style="border:0px;"></div>
-                  <div class="ui disabled checkbox show-skeleton-points-checkbox">
-                    <input type="checkbox">
-                    <label>Show skeleton points</label>
-                  </div>
                 </div>
                 <script>
                   $('.view-menu-button').last().popup({hoverable:true});
@@ -281,6 +282,7 @@
                 {{tmpl({position:"left"})  "#tracking-image"}}
                 {{tmpl({position:"right"}) "#tracking-image"}}
                 {{tmpl({}) "#progress-dimmer"}}
+              </div>
               </div>
             </td>
           </tr>
@@ -304,9 +306,9 @@
                     viewBox="0 0 1 1">  <!--viewBox adjusted in javascript-->
               
                 <circle class="cursor" cx="0" cy="0" r="0px" fill="red" />
-               <!--points="" adjusted in javascript-->
-               <polyline class="matched-points" points="" fill="none" stroke="none" 
-                marker-start="url(#dot-marker)" marker-mid="url(#dot-marker)" marker-end="url(#dot-marker)" />
+                <!--points="" adjusted in javascript-->
+                <polyline class="matched-points" style="display:none" points="" fill="none" stroke="none"
+                          marker-start="url(#dot-marker)" marker-mid="url(#dot-marker)" marker-end="url(#dot-marker)" />
              </svg>
             </div>
           </div>

@@ -28,28 +28,34 @@ var RootTracking = new function() {
 
     //called when user clicks on a file table row to open it
     this.on_accordion_open = function(){
+        $root = $(this)
+
         var $imgelement0 = this.find('img.left.input-image');
-        var content_already_loaded = !!$imgelement0.attr('src')
+        var $imgelement1 = this.find('img.right.input-image');
+
+        var content_already_loaded = !!$imgelement0.attr('src') && !!$imgelement1.attr('src')
         if(!content_already_loaded){
             var filename0   = this.attr('filename0');
-            var file0       = global.input_files[filename0].file;
-            
-            $imgelement0.one('load', function(){
-                $imgelement0.siblings('svg').attr('viewBox', `0 0 ${$imgelement0[0].naturalWidth} ${$imgelement0[0].naturalHeight}`);
-            });
-            set_imgsrc_from_file($imgelement0, file0);
-        }
-
-        //TODO: code re-use
-        var $imgelement1 = this.find('img.right.input-image');
-        var content_already_loaded = !!$imgelement1.attr('src')
-        if(!content_already_loaded){
             var filename1   = this.attr('filename1');
+            var file0       = global.input_files[filename0].file;
             var file1       = global.input_files[filename1].file;
 
-            $imgelement1.one('load', function(){
-                $imgelement1.siblings('svg').attr('viewBox', `0 0 ${$imgelement1[0].naturalWidth} ${$imgelement1[0].naturalHeight}`);
+            //hide all content except the loading message to avoid jerking //FIXME: jerking anyway
+            $root = this;
+            $root.find('div.content').hide()
+            $root.find('.loading-message').show()
+            
+            var promise = $imgelement0.one('load', function(){
+                $imgelement0.siblings('svg').attr('viewBox', `0 0 ${$imgelement0[0].naturalWidth} ${$imgelement0[0].naturalHeight}`);
             });
+            $imgelement1.one('load', async function(){
+                $imgelement1.siblings('svg').attr('viewBox', `0 0 ${$imgelement1[0].naturalWidth} ${$imgelement1[0].naturalHeight}`);
+
+                await promise;
+                $root.find('.loading-message').hide()
+                $root.find('div.content').show()
+            });
+            set_imgsrc_from_file($imgelement0, file0);
             set_imgsrc_from_file($imgelement1, file1);
         }
     };
@@ -110,7 +116,6 @@ var RootTracking = new function() {
         var svg_x_abs    = html_x_rel * img.naturalWidth
         var svg_y_abs    = html_y_rel * img.naturalHeight
         
-        //console.log('>', [H,W], [html_x_abs, html_y_abs], [html_x_rel, html_y_rel], [svg_x_abs, svg_y_abs], xform)
         return [svg_x_abs, svg_y_abs];
     }
 
@@ -180,6 +185,11 @@ var RootTracking = new function() {
         var $root   = $(mousedown_event.target).closest("[filename0][filename1]");
         var $img    = $(mousedown_event.target).find('.input-image')
         var $svg    = $img.siblings('svg');
+
+        var filename0 = $root.attr("filename0");
+        var filename1 = $root.attr("filename1");
+        if(!is_processed(filename0, filename1))
+            return;
         
         $(document).one('mouseup', function(mouseup_event){
             $svg.find('.single-click-correction-point').remove()
@@ -196,13 +206,7 @@ var RootTracking = new function() {
             var $single_point_left  = $root.find('svg.left.tracking-overlay-svg .single-click-correction-point')
             var $single_point_right = $root.find('svg.right.tracking-overlay-svg .single-click-correction-point')
             if($single_point_left.length>0 && $single_point_right.length>0){
-                var filename0 = $root.attr("filename0");
-                var filename1 = $root.attr("filename1");
                 var tracking_results = global.input_files[filename0].tracking_results[filename1];
-                if(tracking_results==undefined){
-                    tracking_results = {points0:[], points1:[]};
-                    global.input_files[filename0].tracking_results[filename1] = tracking_results;
-                }
                 tracking_results.points0.push([Number($single_point_left.attr('cy')),  Number($single_point_left.attr('cx')) ])
                 tracking_results.points1.push([Number($single_point_right.attr('cy')), Number($single_point_right.attr('cx'))])
                 paint_matched_points(filename0, filename1, tracking_results.points0, tracking_results.points1)
@@ -219,6 +223,12 @@ var RootTracking = new function() {
     }
 
     var drag_line_correction = function(mousedown_event){
+        var $root   = $(mousedown_event.target).closest("[filename0][filename1]");
+        var filename0 = $root.attr("filename0");
+        var filename1 = $root.attr("filename1");
+        if(!is_processed(filename0, filename1))
+            return;
+
         //TODO: check if growth map is loaded
         var $img    = $(mousedown_event.target).find('.left.input-image')
         if($img.get().length==0)
@@ -277,17 +287,21 @@ var RootTracking = new function() {
         $img.css('transform', "matrix(1,0,0,1,0,0)");
     }
 
+
+
     //called when user clicks on the "check" button to apply manual corrrections to the growth map
     this.on_apply_corrections = function(event){
         var $root             = $(event.target).closest("[filename0][filename1]");
-        //TODO: check if growth map is loaded
+        var filename0 = $root.attr("filename0");
+        var filename1 = $root.attr("filename1");
+        if(!is_processed(filename0, filename1))
+            return;
+        
         var $svg              = $root.find('svg.left.tracking-overlay-svg')
         var $correction_lines = $svg.find('polyline.correction-line')
         var points_str        = $correction_lines.get().map(x=>x.getAttribute('points'));
         var points            = points_str.map( x => x.split(/[, ]/g).filter(Boolean).map(Number) )
 
-        var filename0 = $root.attr("filename0");
-        var filename1 = $root.attr("filename1");
         var tracking_results = global.input_files[filename0].tracking_results[filename1];
         var post_data = {
             filename0:filename0, points0:tracking_results.points0,
@@ -295,8 +309,6 @@ var RootTracking = new function() {
             corrections:points
         }
         $root.find('.dimmer').dimmer('show');
-
-        //TODO: if tracking_results==undefined do full tracking request (incl file upload)
 
         console.log(`Sending root tracking request for files ${filename0} and ${filename1} with corrections ${points}`);
         $.post('/process_root_tracking', JSON.stringify(post_data)).done( data => {
@@ -322,8 +334,11 @@ var RootTracking = new function() {
         var $chkbx1 = $root.find('.show-matched-points-checkbox')
             $chkbx1.removeClass('disabled').checkbox({onChange:()=>{
             $root.find('svg .matched-points').toggle($chkbx1.checkbox('is checked'));
-            //TODO: also the .highlighted-matched-point
-        }}).checkbox('set checked').checkbox('uncheck')
+        }})
+    }
+
+    var is_processed = function(filename0, filename1){
+        return global.input_files[filename0].tracking_results[filename1] != undefined;
     }
 
 
@@ -369,6 +384,8 @@ var RootTracking = new function() {
         var $svg1 = $root.find(`.right.tracking-overlay-svg`)
         $svg0.find('circle.highlighted-matched-point').remove()
         $svg1.find('circle.highlighted-matched-point').remove()
+        if(!$root.find('svg .matched-points').is(':visible'))
+            return;
 
         var position = $svg.hasClass('left')? 'left' : 'right';
         var points = (position=='left')? tracking_results.points0 : tracking_results.points1;

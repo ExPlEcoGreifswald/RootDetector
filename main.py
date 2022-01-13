@@ -98,8 +98,8 @@ def process_root_tracking():
         result = root_tracking.process(fname0, fname1, corrections, points0, points1)
     
     return flask.jsonify({
-        'points0':    result['points0'].tolist(),
-        'points1':    result['points1'].tolist(),
+        'points0':         result['points0'].tolist(),
+        'points1':         result['points1'].tolist(),
         'growthmap'     :  os.path.basename(result['growthmap']),
         'growthmap_rgba':  os.path.basename(result['growthmap_rgba']),
     })
