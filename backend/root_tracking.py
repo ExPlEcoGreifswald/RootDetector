@@ -12,7 +12,6 @@ from backend import GLOBALS
 
 
 def process(filename0, filename1, corrections=None, points0=None, points1=None):
-    #TODO: wrap in threading.Lock
     print(f'Performing root tracking on files {filename0} and {filename1}')
     modelfile  = os.path.join('models/root_tracking_models', GLOBALS.tracking_active_model+'.cpkl')
     matchmodel = cloudpickle.load(open(modelfile, 'rb'))
@@ -68,6 +67,8 @@ def process(filename0, filename1, corrections=None, points0=None, points1=None):
     output_file = f'{filename0}.{os.path.basename(filename1)}.growthmap_rgba.png'
     PIL.Image.fromarray(gmap).save( output_file )
     output['growthmap_rgba'] = output_file
+    output['segmentation0']  = seg0f
+    output['segmentation1']  = seg1f
 
     return output
 

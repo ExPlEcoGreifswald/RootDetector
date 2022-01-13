@@ -73,7 +73,7 @@ var RootTracking = new function() {
         $root.find('.dimmer').dimmer('show');
         
         //send a processing request to python & update gui with the results
-        return $.get(`/process_root_tracking`, {filename0:filename0, filename1:filename1}).done( data => {   //TODO: code re-use
+        return $.get(`/process_root_tracking`, {filename0:filename0, filename1:filename1}).done( data => {
             set_tracking_data(filename0, filename1, data)
             
 
@@ -91,7 +91,7 @@ var RootTracking = new function() {
         var svg_xy  = page2img_coordinates([event.pageX, event.pageY], img, $(event.target))
         $svg.find('circle.cursor').attr({cx:svg_xy[0], cy:svg_xy[1]})
 
-        highlight_closest_matched_point($svg, svg_xy);  //TODO: check if show matched points is checked
+        highlight_closest_matched_point($svg, svg_xy);
     }
 
     //translate page coordinates xy to img coordinates
@@ -229,7 +229,6 @@ var RootTracking = new function() {
         if(!is_processed(filename0, filename1))
             return;
 
-        //TODO: check if growth map is loaded
         var $img    = $(mousedown_event.target).find('.left.input-image')
         if($img.get().length==0)
             return;
