@@ -2,10 +2,11 @@
 <head>
   <title>DigIT! Root Detector</title>
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
-  <link rel="stylesheet" href="/static/thirdparty/semantic.min.css">
   <script src="/static/thirdparty/jquery-3.4.1.min.js"></script>
   <script src="/static/thirdparty/jquery.tmpl.min.js"></script>
+  <!-- fomantic UI (not semantic UI) -->
   <script src="/static/thirdparty/semantic.min.js"></script>
+  <link rel="stylesheet" href="/static/thirdparty/semantic.min.css">
 
   <script src="/static/util.js"></script>
   <script src="/static/settings.js"></script>
@@ -251,9 +252,13 @@
 
               <div class="content">
               <div class="ui bottom attached secondary icon menu" style="border-top-width: 0px;">
-                <a class="item" onclick="RootTracking.on_process_clicked(event)"><i class="play icon"></i></a>
+                <a class="item" onclick="RootTracking.on_process_clicked(event)"  data-tooltip="Process" data-position="bottom left">
+                  <i class="play icon"></i>
+                </a>
 
-                <a class="item" onclick="RootTracking.on_apply_corrections(event)"><i class="check icon"></i></a>
+                <a class="item" onclick="RootTracking.on_apply_corrections(event)" data-tooltip="Apply manual corrections" data-position="bottom left">
+                  <i class="check icon"></i>
+                </a>
 
                 <a class="item view-menu-button" data-position="bottom left">
                   <i class="eye icon"></i>
@@ -274,9 +279,22 @@
                   $('.view-menu-popup').last().find('.checkbox').checkbox();
                 </script>
 
-                <a class="item" onclick="on_download_tracking_single(event)"><i class="download icon"></i></a>
+                <a class="item" onclick="on_download_tracking_single(event)" data-tooltip="Download results" data-position="bottom left">
+                  <i class="download icon"></i>
+                </a>
 
-                <a class="item"><i class="help icon"></i></a>
+                <a class="item help-menu-button"><i class="help icon"></i></a>
+                <div class="ui segment flowing popup">
+                  <ul class="ui list">
+                    <li><b>SHIFT + Drag</b> to move the image</li>
+                    <li><b>SHIFT + Mouse wheel</b> to zoom</li>
+                    <li><b>SHIFT + Double-click</b> to reset</li>
+                    <li><b>CTRL + Click</b> in both images to add a manual correction point</li>
+                    <li><b>CTRL + Drag</b> within the left image from <span class="ui green text">green</span> to <span class="ui red text">red</span> to add a manual correction point</li>
+                    <li><b>CTRL + Click</b> on a highlighted <span class="ui teal text">cyan</span> point to remove it</li>
+                  </ul>
+                </div>
+                <script>$('.help-menu-button').last().popup({hoverable:false});</script>
               </div>
               <div style="display: flex; align-items: flex-start; justify-content: center;" >
                 {{tmpl({position:"left"})  "#tracking-image"}}
