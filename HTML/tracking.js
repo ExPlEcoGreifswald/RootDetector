@@ -66,22 +66,61 @@ var RootTracking = new function() {
         var filename0 = $root.attr("filename0");
         var filename1 = $root.attr("filename1");
 
+        process_single(filename0, filename1)
+    };
+
+    var process_single = function(filename0, filename1, upload_images=true, extra_data={}){
+        //TODO: clear
+        var $root     = $(`[filename0="${filename0}"][filename1="${filename1}"]`)
+        $root.find('.dimmer').dimmer({closable:false}).dimmer('show');
+
+        if(upload_images){
+            upload_file_to_flask('/file_upload', global.input_files[filename0].file);
+            upload_file_to_flask('/file_upload', global.input_files[filename1].file);
+        }
+
         console.log(`Sending root tracking request for files ${filename0} and ${filename1}`);
-        upload_file_to_flask('/file_upload', global.input_files[filename0].file);
-        upload_file_to_flask('/file_upload', global.input_files[filename1].file);
-
-        $root.find('.dimmer').dimmer('show');
+        var request_data = {filename0:filename0, filename1:filename1};
+        Object.assign(request_data, extra_data)
         
-        //send a processing request to python & update gui with the results
-        return $.get(`/process_root_tracking`, {filename0:filename0, filename1:filename1}).done( data => {
+        var request_method = $.get;
+        if(Object.keys(extra_data).length>0){
+            request_method = $.post;
+            request_data   = JSON.stringify(request_data)
+        }
+        return request_method(`/process_root_tracking`, request_data).done( data => {
             set_tracking_data(filename0, filename1, data)
-            
-
+        }).always( () => {
             delete_image(filename0);
             delete_image(filename1);
             $root.find('.dimmer').dimmer('hide');
+            $root.find('polyline.correction-line').remove()
         });
-    };
+    }
+
+    /* TODO: states
+    unprocessed: dimmer off, view checkboxes/download disabled, global.data clear, growthmap cleared, processing button enabled
+    processing:  dimmer on,  view checkboxes/download disabled, ---              , ---,               processing button disabled
+    processed:   dimmer off, view checkboxes/download enabled,  global.data set  , growthmap set,     processing button enabled
+    failed: ?
+    */
+    var set_tracking_data = function(filename0, filename1, data){
+        console.log('Tracking results: ', data)
+        global.input_files[filename0].tracking_results[filename1] = data;
+        paint_matched_points(filename0, filename1, data.points0, data.points1);
+
+        var $root    = $(`[filename0="${filename0}"][filename1="${filename1}"]`);
+        var $overlay = $root.find(`img.left.overlay`)
+            $overlay.attr('src', url_for_image(data.growthmap_rgba))
+        var $chkbx0 = $root.find('.show-growthmap-checkbox')
+            $chkbx0.removeClass('disabled').checkbox({onChange:()=>{
+                $overlay.toggle($chkbx0.checkbox('is checked'));
+        }}).checkbox('check')
+        var $chkbx1 = $root.find('.show-matched-points-checkbox')
+            $chkbx1.removeClass('disabled').checkbox({onChange:()=>{
+            $root.find('svg .matched-points').toggle($chkbx1.checkbox('is checked'));
+        }})
+    }
 
 
     this.on_svg_mousemove = function(event){
@@ -307,33 +346,8 @@ var RootTracking = new function() {
             filename1:filename1, points1:tracking_results.points1,
             corrections:points
         }
-        $root.find('.dimmer').dimmer('show');
 
-        console.log(`Sending root tracking request for files ${filename0} and ${filename1} with corrections ${points}`);
-        $.post('/process_root_tracking', JSON.stringify(post_data)).done( data => {
-            set_tracking_data(filename0, filename1, data);
-        }).always( ()=>{
-            $correction_lines.remove()
-            $root.find('.dimmer').dimmer('hide');
-        } );
-    }
-
-    var set_tracking_data = function(filename0, filename1, data){
-        console.log('Tracking results: ', data)
-        global.input_files[filename0].tracking_results[filename1] = data;
-        paint_matched_points(filename0, filename1, data.points0, data.points1);
-
-        var $root    = $(`[filename0="${filename0}"][filename1="${filename1}"]`);
-        var $overlay = $root.find(`img.left.overlay`)
-            $overlay.attr('src', url_for_image(data.growthmap_rgba))
-        var $chkbx0 = $root.find('.show-growthmap-checkbox')
-            $chkbx0.removeClass('disabled').checkbox({onChange:()=>{
-                $overlay.toggle($chkbx0.checkbox('is checked'));
-        }}).checkbox('check')
-        var $chkbx1 = $root.find('.show-matched-points-checkbox')
-            $chkbx1.removeClass('disabled').checkbox({onChange:()=>{
-            $root.find('svg .matched-points').toggle($chkbx1.checkbox('is checked'));
-        }})
+        process_single(filename0, filename1, false, post_data);
     }
 
     var is_processed = function(filename0, filename1){
@@ -399,14 +413,18 @@ var RootTracking = new function() {
         var p1_xy  = clip_point_to_viewport([p1_yx[1],p1_yx[0]], img1)
 
         const attrs = {
-            r    : 3,
             fill : "cyan",
             index: idx,
         };
+        var xform0  = parse_css_matrix($svg0.closest('.transform-box').css('transform'));
+        var radius0 = Math.min(Math.max(16/xform0.scale, 3), 16)
+        var xform1  = parse_css_matrix($svg1.closest('.transform-box').css('transform'));
+        var radius1 = Math.min(Math.max(16/xform1.scale, 3), 16)
+
         var $point0     = $(document.createElementNS('http://www.w3.org/2000/svg','circle'));
         var $point1     = $(document.createElementNS('http://www.w3.org/2000/svg','circle'));
-        $point0.attr(attrs).attr({cx:p0_xy[0], cy:p0_xy[1]}).addClass('highlighted-matched-point');
-        $point1.attr(attrs).attr({cx:p1_xy[0], cy:p1_xy[1]}).addClass('highlighted-matched-point');
+        $point0.attr(attrs).attr({cx:p0_xy[0], cy:p0_xy[1], r:radius0}).addClass('highlighted-matched-point');
+        $point1.attr(attrs).attr({cx:p1_xy[0], cy:p1_xy[1], r:radius1}).addClass('highlighted-matched-point');
         $svg0.append($point0);
         $svg1.append($point1);
     }
