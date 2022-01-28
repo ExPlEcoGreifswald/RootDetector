@@ -110,7 +110,7 @@ var RootTracking = new function() {
         paint_matched_points(filename0, filename1, data.points0, data.points1);
 
         var $root    = $(`[filename0="${filename0}"][filename1="${filename1}"]`);
-        var $overlay = $root.find(`img.left.overlay`)
+        var $overlay = $root.find(`img.right.overlay`)
             $overlay.attr('src', url_for_image(data.growthmap_rgba))
         var $chkbx0 = $root.find('.show-growthmap-checkbox')
             $chkbx0.removeClass('disabled').checkbox({onChange:()=>{
@@ -268,7 +268,7 @@ var RootTracking = new function() {
         if(!is_processed(filename0, filename1))
             return;
 
-        var $img    = $(mousedown_event.target).find('.left.input-image')
+        var $img    = $(mousedown_event.target).find('.right.input-image')
         if($img.get().length==0)
             return;
         var $svg     = $img.siblings('svg');
@@ -292,8 +292,8 @@ var RootTracking = new function() {
                 stroke         : "cyan",
                 "stroke-width" : "1",
                 fill           : "none",
-                "marker-start" : "url(#dot-marker-green)",
-                "marker-end"   : "url(#dot-marker-red)",
+                "marker-start" : "url(#dot-marker-red)",
+                "marker-end"   : "url(#dot-marker-green)",
             };
             $line.attr(line_attrs).attr("points", points_str).addClass(['correction-line', 'unfinished']);
             $svg.append($line);
@@ -335,7 +335,7 @@ var RootTracking = new function() {
         if(!is_processed(filename0, filename1))
             return;
         
-        var $svg              = $root.find('svg.left.tracking-overlay-svg')
+        var $svg              = $root.find('svg.right.tracking-overlay-svg')
         var $correction_lines = $svg.find('polyline.correction-line')
         var points_str        = $correction_lines.get().map(x=>x.getAttribute('points'));
         var points            = points_str.map( x => x.split(/[, ]/g).filter(Boolean).map(Number) )

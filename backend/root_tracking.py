@@ -40,26 +40,26 @@ def process(filename0, filename1, corrections=None, points0=None, points1=None):
             print(len(output['points0']))
             print('Matched percentage:', output['matched_percentage'])
             print()
-            imap    = matchmodel.interpolation_map(output['points0'], output['points1'], img0.shape[-2:])
+            imap    = matchmodel.interpolation_map(output['points1'], output['points0'], img0.shape[-2:])
     else:
         output = {'points0':np.asarray(points0), 'points1':np.asarray(points1)}
         corrections    = np.array(corrections).reshape(-1,4)
         if len(corrections)>0:
             imap   = np.load(f'{filename0}.{os.path.basename(filename1)}.imap.npy').astype('float32')
-            corrections_p1 = corrections[:,:2][:,::-1] #xy to yx
-            corrections_p0 = corrections[:,2:][:,::-1]
-            corrections_p1 = np.stack([
-                scipy.ndimage.map_coordinates(imap[...,0], corrections_p1.T, order=1),
-                scipy.ndimage.map_coordinates(imap[...,1], corrections_p1.T, order=1),
+            corrections_p0 = corrections[:,:2][:,::-1] #xy to yx
+            corrections_p1 = corrections[:,2:][:,::-1]
+            corrections_p0 = np.stack([
+                scipy.ndimage.map_coordinates(imap[...,0], corrections_p0.T, order=1),
+                scipy.ndimage.map_coordinates(imap[...,1], corrections_p0.T, order=1),
             ], axis=-1)
             output['points0'] = np.concatenate([points0, corrections_p0])
             output['points1'] = np.concatenate([points1, corrections_p1])
-        imap    = matchmodel.interpolation_map(output['points0'], output['points1'], seg0.shape)
+        imap    = matchmodel.interpolation_map(output['points1'], output['points0'], seg0.shape)
     
     np.save(f'{filename0}.{os.path.basename(filename1)}.imap.npy', imap.astype('float16'))  #f16 to save space & time
 
-    warped_seg1 = matchmodel.warp(seg1, imap)
-    gmap        = matchmodel.create_growth_map_rgba( seg0>0.5,  warped_seg1>0.5 )
+    warped_seg0 = matchmodel.warp(seg0, imap)
+    gmap        = matchmodel.create_growth_map_rgba( warped_seg0>0.5, seg1>0.5, )
     output_file = f'{filename0}.{os.path.basename(filename1)}.growthmap.png'
     PIL.Image.fromarray(gmap).convert('RGB').save( output_file )
     output['growthmap'] = output_file
