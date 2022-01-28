@@ -411,6 +411,15 @@ var RootTracking = new function() {
         $svg1.append($point1);
     }
 
+
+    this.on_slider = function(){
+        var $root = $(this).closest('[filename0][filename1]')
+
+        var brightness = $root.find('.brightness-slider').slider('get value')/10
+        var contrast   = $root.find('.contrast-slider').slider('get value')  /10
+        $root.find('.input-image').css('filter', `brightness(${brightness}) contrast(${contrast})`)
+    }
+
 }; //RootTracking
 
 

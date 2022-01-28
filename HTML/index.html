@@ -273,10 +273,14 @@
                     <input type="checkbox">
                     <label>Show matched points</label>
                   </div>
+                  <div class="ui divider"></div>
+                  <div class="ui slider brightness-slider" style="padding:5px">Brightness</div>
+                  <div class="ui slider contrast-slider"   style="padding:5px">Contrast</div>
                 </div>
                 <script>
                   $('.view-menu-button').last().popup({hoverable:true});
                   $('.view-menu-popup').last().find('.checkbox').checkbox();
+                  $('.view-menu-popup').last().find('.ui.slider').slider({onMove:RootTracking.on_slider, max:30}).slider('set value', 10);
                 </script>
 
                 <a class="item" onclick="on_download_tracking_single(event)" data-tooltip="Download results" data-position="bottom left">
