@@ -47,11 +47,17 @@
 
   <template id="progress-dimmer">
     <div class="ui dimmer">
-      <div class="content">
+      <div class="content processing">
         <h2 class="ui inverted icon header">
           <i class="spinner loading icon"></i>
           <p>Processing...</p>
         </h2>
+      </div>
+      <div class="content failed" style="display:hidden">
+        <h2 class="ui inverted icon header">
+          <p>Root tracking failed</p>
+        </h2>
+        <p>Click to continue</p>
       </div>
     </div>
   </template>

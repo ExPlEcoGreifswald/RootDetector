@@ -90,7 +90,11 @@ var RootTracking = new function() {
     var process_single = function(filename0, filename1, upload_images=true, extra_data={}){
         //TODO: clear
         var $root     = $(`[filename0="${filename0}"][filename1="${filename1}"]`)
-        $root.find('.dimmer').dimmer({closable:false}).dimmer('show');
+        var $dimmer   = $root.find('.dimmer')
+        
+        $dimmer.dimmer({closable:false}).dimmer('show');
+        $dimmer.find('.content.processing').show()
+        $dimmer.find('.content.failed').hide()
 
         if(upload_images){
             upload_file_to_flask('/file_upload', global.input_files[filename0].file);
@@ -108,10 +112,20 @@ var RootTracking = new function() {
         }
         return request_method(`/process_root_tracking`, request_data).done( data => {
             set_tracking_data(filename0, filename1, data)
-        }).always( () => {
+            if(data.success)
+                $dimmer.dimmer('hide');
+            else{
+                $dimmer.find('.content.processing').hide()
+                $dimmer.find('.content.failed').show()
+                $dimmer.dimmer({closable:true});
+            }
+        }).fail( () => {
+            $dimmer.find('.content.processing').hide()
+            $dimmer.find('.content.failed').show()
+            $dimmer.dimmer({closable:true});
+        } ).always( () => {
             delete_image(filename0);
             delete_image(filename1);
-            $root.find('.dimmer').dimmer('hide');
             $root.find('polyline.correction-line').remove()
         });
     }

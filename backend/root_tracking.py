@@ -40,7 +40,7 @@ def process(filename0, filename1, corrections=None, points0=None, points1=None):
             print(len(output['points0']))
             print('Matched percentage:', output['matched_percentage'])
             print()
-            imap    = matchmodel.interpolation_map(output['points1'], output['points0'], img0.shape[-2:])
+            success = output['success'] = (len(output['points1'])>=16)
     else:
         output = {'points0':np.asarray(points0), 'points1':np.asarray(points1)}
         corrections    = np.array(corrections).reshape(-1,4)
@@ -54,7 +54,13 @@ def process(filename0, filename1, corrections=None, points0=None, points1=None):
             ], axis=-1)
             output['points0'] = np.concatenate([points0, corrections_p0])
             output['points1'] = np.concatenate([points1, corrections_p1])
+        success = output['success'] = (len(output['points1'])>=1)
+    
+    if success:
         imap    = matchmodel.interpolation_map(output['points1'], output['points0'], seg0.shape)
+    else:
+        #dummy interpolation map
+        imap    = matchmodel.interpolation_map(np.zeros([1,2]), np.zeros([1,2]), seg0.shape)
     
     np.save(f'{filename0}.{os.path.basename(filename1)}.imap.npy', imap.astype('float16'))  #f16 to save space & time
 

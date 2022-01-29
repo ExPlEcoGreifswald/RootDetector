@@ -104,6 +104,7 @@ def process_root_tracking():
         'growthmap_rgba':  os.path.basename(result['growthmap_rgba']),
         'segmentation0' :  os.path.basename(result['segmentation0']),
         'segmentation1' :  os.path.basename(result['segmentation1']),
+        'success'       :  result['success'],
     })
     return 'OK'
 
