@@ -92,10 +92,7 @@ def process_root_tracking():
         data   = request.get_json(force=True)
         fname0 = os.path.join(TEMPFOLDER.name, data['filename0'])
         fname1 = os.path.join(TEMPFOLDER.name, data['filename1'])
-        corrections = data['corrections']
-        points0     = data['points0']
-        points1     = data['points1']
-        result = root_tracking.process(fname0, fname1, corrections, points0, points1)
+        result = root_tracking.process(fname0, fname1, data)
     
     return flask.jsonify({
         'points0':         result['points0'].tolist(),
@@ -105,6 +102,7 @@ def process_root_tracking():
         'segmentation0' :  os.path.basename(result['segmentation0']),
         'segmentation1' :  os.path.basename(result['segmentation1']),
         'success'       :  result['success'],
+        'n_matched_points' : result['n_matched_points'],
     })
     return 'OK'
 

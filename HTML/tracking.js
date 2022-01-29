@@ -374,9 +374,10 @@ var RootTracking = new function() {
 
         var tracking_results = global.input_files[filename0].tracking_results[filename1];
         var post_data = {
-            filename0:filename0, points0:tracking_results.points0,
-            filename1:filename1, points1:tracking_results.points1,
-            corrections:points
+            points0:           tracking_results.points0,
+            points1:           tracking_results.points1,
+            corrections:       points,
+            n_matched_points : tracking_results.n_matched_points,
         }
 
         process_single(filename0, filename1, false, post_data);
@@ -399,6 +400,8 @@ var RootTracking = new function() {
     }
 
     var find_closest_point = function(p, points, return_index=false, max_distance=undefined){
+        if(points.length==0)
+            return;
         var distances = points.map( x => ((x[0]-p[0])**2 + (x[1]-p[1])**2)**0.5 )
         var i         = argmin(distances)
         if(distances[i]<=max_distance || max_distance==undefined)
