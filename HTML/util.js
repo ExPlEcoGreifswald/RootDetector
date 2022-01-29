@@ -4,6 +4,9 @@ sleep    = function(ms) { return new Promise(resolve => setTimeout(resolve, ms))
 //returns the name of a file without its ending
 filebasename = (filename) => filename.split('.').slice(0, -1).join('.');
 
+//return the name of a file without the directory
+remove_dirname = fname => fname.split('/').reverse()[0]
+
 function sortObjectByValue(o) {
     return Object.keys(o).sort(function(a,b){return o[b]-o[a]}).reduce((r, k) => (r[k] = o[k], r), {});
 }

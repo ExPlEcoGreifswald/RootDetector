@@ -49,7 +49,7 @@ def file_upload():
         fullpath = os.path.join(TEMPFOLDER.name, os.path.basename(filename) )
         f.save(fullpath)
         #save the file additionally as jpg to make sure format is compatible with browser (tiff)
-        backend.write_as_jpeg(fullpath+'.jpg', backend.load_image(fullpath) )
+        #backend.write_as_jpeg(fullpath+'.jpg', backend.load_image(fullpath) )
     return 'OK'
 
 @app.route('/images/<imgname>')

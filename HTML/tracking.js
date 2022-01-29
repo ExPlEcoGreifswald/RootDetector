@@ -11,11 +11,29 @@ var RootTracking = new function() {
                 
                 var parsed0 = parse_filename(f0.name)
                 var parsed1 = parse_filename(f1.name)
-                if(parsed0.base == parsed1.base && parsed0.date < parsed1.date)
+                if(parsed0.base == parsed1.base && parsed0.date < parsed1.date){
                     $('template#tracking-item').tmpl({filename0:f0.name, filename1:f1.name}).appendTo($table)
+                    global.input_files[f0.name].tracking_results[f1.name] = {};
+                }
             }
         }
     };
+
+    this.load_result = async function(filename0, filename1, tracking_results_file, segmentation0_file, segmentation1_file){
+        tracking_results_file = await tracking_results_file
+        segmentation0_file    = rename_file(await segmentation0_file, `${filename0}.segmentation.png`)
+        segmentation1_file    = rename_file(await segmentation1_file, `${filename1}.segmentation.png`)
+
+        upload_file_to_flask('/file_upload', segmentation0_file);
+        upload_file_to_flask('/file_upload', segmentation1_file);
+
+        tracking_results_file.text().then(function(text){
+            var jsondata = JSON.parse(text);
+            jsondata['corrections'] = [];
+            process_single(filename0, filename1, false, jsondata)
+        });
+    }
+    
 
     var parse_filename = function(fname){
         var splits = fname.split('_')

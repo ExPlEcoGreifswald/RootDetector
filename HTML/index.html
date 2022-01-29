@@ -11,6 +11,7 @@
   <script src="/static/util.js"></script>
   <script src="/static/settings.js"></script>
   <script src="/static/downloads.js"></script>
+  <script src="/static/upload.js"></script>
   <script src="/static/script.js"></script>
   <script src="/static/detection.js"></script>
   <script src="/static/tracking.js"></script>
@@ -64,7 +65,7 @@
 
 
 
-<body onload="init()">
+<body onload="init()" ondrop="on_drop(event)" ondragover="on_dragover(event)" >
 
   
   <div class="ui container menu" style="width:calc(100% - 40px);">

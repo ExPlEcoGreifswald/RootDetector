@@ -106,9 +106,9 @@ async function on_download_tracking_single(event){
       return;
     
     var zipdata  = {};
-    zipdata[tracking_data.growthmap] = fetch_as_blob('/images/'+tracking_data.growthmap)
-    zipdata[tracking_data.segmentation0] = fetch_as_blob('/images/'+tracking_data.segmentation0)
-    zipdata[tracking_data.segmentation1] = fetch_as_blob('/images/'+tracking_data.segmentation1)
+    zipdata[tracking_data.growthmap]     = fetch_as_blob(url_for_image(tracking_data.growthmap))
+    zipdata[tracking_data.segmentation0] = fetch_as_blob(url_for_image(tracking_data.segmentation0))
+    zipdata[tracking_data.segmentation1] = fetch_as_blob(url_for_image(tracking_data.segmentation1))
     var jsondata = {
       filename0 : filename0,
       filename1 : filename1,
