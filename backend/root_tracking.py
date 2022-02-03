@@ -41,12 +41,16 @@ def process(filename0, filename1, previous_data:dict=None):
             print('Matched percentage:', output['matched_percentage'])
             print()
             output['success'] = success = (len(output['points0'])>=16)
-            output ['n_matched_points'] = len(output['points0'])
+            output['n_matched_points'] = len(output['points0'])
+            output['tracking_model']     = GLOBALS.tracking_active_model
+            output['segmentation_model'] = GLOBALS.active_model
     else:
         output      = {
-            'points0'          : np.asarray(previous_data['points0']).reshape(-1,2),
-            'points1'          : np.asarray(previous_data['points1']).reshape(-1,2),
-            'n_matched_points' : previous_data['n_matched_points'],
+            'points0'            : np.asarray(previous_data['points0']).reshape(-1,2),
+            'points1'            : np.asarray(previous_data['points1']).reshape(-1,2),
+            'n_matched_points'   : previous_data['n_matched_points'],
+            'tracking_model'     : previous_data['tracking_model'],
+            'segmentation_model' : previous_data['segmentation_model'],
         }
         corrections = np.array(previous_data['corrections']).reshape(-1,4)
         if len(corrections)>0:

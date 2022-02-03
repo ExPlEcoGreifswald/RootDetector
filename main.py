@@ -102,7 +102,9 @@ def process_root_tracking():
         'segmentation0' :  os.path.basename(result['segmentation0']),
         'segmentation1' :  os.path.basename(result['segmentation1']),
         'success'       :  result['success'],
-        'n_matched_points' : result['n_matched_points'],
+        'n_matched_points'   : result['n_matched_points'],
+        'tracking_model'     : result['tracking_model'],
+        'segmentation_model' : result['segmentation_model'],
     })
     return 'OK'
 

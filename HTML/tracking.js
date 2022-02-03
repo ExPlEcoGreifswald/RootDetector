@@ -377,7 +377,9 @@ var RootTracking = new function() {
             points0:           tracking_results.points0,
             points1:           tracking_results.points1,
             corrections:       points,
-            n_matched_points : tracking_results.n_matched_points,
+            n_matched_points   : tracking_results.n_matched_points,
+            tracking_model     : tracking_results.tracking_model,
+            segmentation_model : tracking_results.segmentation_model,
         }
 
         process_single(filename0, filename1, false, post_data);

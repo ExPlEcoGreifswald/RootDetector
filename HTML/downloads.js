@@ -114,7 +114,9 @@ async function on_download_tracking_single(event){
       filename1 : filename1,
       points0   : tracking_data.points0,
       points1   : tracking_data.points1,
-      n_matched_points : tracking_data.n_matched_points,
+      n_matched_points   : tracking_data.n_matched_points,
+      tracking_model     : tracking_data.tracking_model,
+      segmentation_model : tracking_data.segmentation_model,
     }
     zipdata[`${filename0}.${filename1}.json`] = JSON.stringify(jsondata);
 
