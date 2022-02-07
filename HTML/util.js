@@ -22,14 +22,14 @@ function argmin(x){
 }
 
 
-function upload_file_to_flask(url, file){
+function upload_file_to_flask(url, file, async=false){
     var formData = new FormData();
     formData.append('files', file);
     return $.ajax({
         url: url, type: 'POST',
         data: formData,
         processData: false, cache: false,
-        contentType: false, async: false,
+        contentType: false, async: async,
         enctype: 'multipart/form-data'
     });
 }

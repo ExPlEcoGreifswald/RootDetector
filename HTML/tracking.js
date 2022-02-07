@@ -87,7 +87,7 @@ var RootTracking = new function() {
         process_single(filename0, filename1)
     };
 
-    var process_single = function(filename0, filename1, upload_images=true, extra_data={}){
+    var process_single = async function(filename0, filename1, upload_images=true, extra_data={}){
         //TODO: clear
         var $root     = $(`[filename0="${filename0}"][filename1="${filename1}"]`)
         var $dimmer   = $root.find('.dimmer')
@@ -97,8 +97,8 @@ var RootTracking = new function() {
         $dimmer.find('.content.failed').hide()
 
         if(upload_images){
-            upload_file_to_flask('/file_upload', global.input_files[filename0].file);
-            upload_file_to_flask('/file_upload', global.input_files[filename1].file);
+            await upload_file_to_flask('/file_upload', global.input_files[filename0].file, true);
+            await upload_file_to_flask('/file_upload', global.input_files[filename1].file, true);
         }
 
         console.log(`Sending root tracking request for files ${filename0} and ${filename1}`);

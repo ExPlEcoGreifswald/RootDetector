@@ -179,6 +179,12 @@ parser.add_argument('--key',  default=None, help='Path to .key file.')
 parser.add_argument('--password', default=None, help='SHA256 password hash')
 args   = parser.parse_args()
 
+if args.password is not None and args.cert is None:
+    print()
+    print('PASSWORD WITHOUT HTTPS NOT ALLOWED')
+    print()
+    sys.exit(1)
+
 print()
 print(f'Args: {args}')
 context = (args.cert, args.key) if args.cert is not None else None
