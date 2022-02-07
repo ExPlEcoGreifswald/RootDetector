@@ -1,5 +1,5 @@
 import webbrowser, os, tempfile, io, sys, time, json
-import glob, shutil
+import glob, shutil, argparse
 import warnings
 warnings.simplefilter('ignore')
 
@@ -30,17 +30,56 @@ if os.environ.get('WERKZEUG_RUN_MAIN')=='true' or not is_debug:
             shutil.rmtree(tmpdir)
 
 
+COOKIE_SECRET = str(time.time())
+
+def check_auth(f):
+    import functools
+
+    @functools.wraps(f)
+    def wrap(*a, **kw):
+        if args.password is None:
+            return f(*a, **kw)
+        else:
+            import hashlib
+            authcookie = request.cookies.get('auth','')
+            if authcookie == hashlib.sha256( (COOKIE_SECRET+request.remote_addr).encode('utf8') ).hexdigest():
+                return f(*a,**kw)
+            else:
+                return flask.redirect(flask.url_for('login'))
+    return wrap
 
 
 @app.route('/')
+@check_auth
 def root():
     return app.send_static_file('index.html')
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        import hashlib
+        input_hash = hashlib.sha256(request.form['password'].encode('utf8')).hexdigest()
+        if input_hash == args.password:
+            resp = flask.make_response(flask.redirect('/'))
+            resp.set_cookie('auth',  hashlib.sha256( (COOKIE_SECRET+request.remote_addr).encode('utf8') ).hexdigest(), max_age=60*60*12 )
+            return resp
+        else:
+            flask.abort(401)
+    else:
+        return '''
+        <form method="post">
+            <p><input type=password name=password>
+            <p><input type=submit value=Login>
+        </form>
+    '''
+
 @app.route('/static/<path:path>')
+@check_auth
 def staticfiles(path):
     return app.send_static_file(path)
 
 @app.route('/file_upload', methods=['POST'])
+@check_auth
 def file_upload():
     files = request.files.getlist("files")
     for f in files:
@@ -53,10 +92,12 @@ def file_upload():
     return 'OK'
 
 @app.route('/images/<imgname>')
+@check_auth
 def images(imgname):
     return flask.send_from_directory(TEMPFOLDER.name, imgname)
 
 @app.route('/process_image/<imgname>')
+@check_auth
 def process_image(imgname):
     fullpath  = os.path.join(TEMPFOLDER.name, imgname)
     result    = root_detection.process_image( fullpath )
@@ -66,6 +107,7 @@ def process_image(imgname):
 
 
 @app.route('/delete_image/<imgname>')
+@check_auth
 def delete_image(imgname):
     fullpath = os.path.join(TEMPFOLDER.name, imgname)
     print('DELETE: %s'%fullpath)
@@ -75,6 +117,7 @@ def delete_image(imgname):
 
 
 @app.route('/settings', methods=['GET', 'POST'])
+@check_auth
 def settings():
     if request.method=='POST':
         backend.set_settings(request.get_json(force=True))
@@ -83,6 +126,7 @@ def settings():
         return flask.jsonify(backend.get_settings())
 
 @app.route('/process_root_tracking', methods=['GET', 'POST'])
+@check_auth
 def process_root_tracking():
     if request.method=='GET':
         fname0 = os.path.join(TEMPFOLDER.name, request.args['filename0'])
@@ -110,6 +154,7 @@ def process_root_tracking():
 
 
 @app.route('/stream')
+@check_auth
 def stream():
     def generator():
         message_queue = backend.PubSub.subscribe()
@@ -127,7 +172,14 @@ if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not is_debug:  #to avoid fla
         	print('Flask started')
         	webbrowser.open('http://localhost:5000', new=2)
 
-#ugly ugly
-host = ([x[x.index('=')+1:] for x in sys.argv if x.startswith('--host=')] + ['127.0.0.1'])[0]
-print(f'Host: {host}')
-app.run(host=host,port=5000, debug=is_debug)
+parser = argparse.ArgumentParser(description='')
+parser.add_argument('--host', default='127.0.0.1')
+parser.add_argument('--cert', default=None, help='Path to .crt file.')
+parser.add_argument('--key',  default=None, help='Path to .key file.')
+parser.add_argument('--password', default=None, help='SHA256 password hash')
+args   = parser.parse_args()
+
+print()
+print(f'Args: {args}')
+context = (args.cert, args.key) if args.cert is not None else None
+app.run(host=args.host,port=5000, debug=is_debug, ssl_context=context)
