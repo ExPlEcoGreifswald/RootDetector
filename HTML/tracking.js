@@ -38,9 +38,8 @@ var RootTracking = new function() {
     var parse_filename = function(fname){
         var splits = fname.split('_')
         var base   = splits.slice(0,3).join('_')
-        var [d,m,y]  = splits[3].split('.').map(Number)
-        y          = (y>70)? y+1900 : y+2000;           //1970...2069
-        return {base:base, date:new Date(y,m,d)}
+        var date   = splits[3];
+        return {base:base, date:new Date(date)}
     }
 
 
@@ -386,7 +385,8 @@ var RootTracking = new function() {
     }
 
     var is_processed = function(filename0, filename1){
-        return global.input_files[filename0].tracking_results[filename1] != undefined;
+        var r = global.input_files[filename0].tracking_results[filename1];
+        return r.growthmap != undefined;
     }
 
 
@@ -473,6 +473,42 @@ var RootTracking = new function() {
         var brightness = $root.find('.brightness-slider').slider('get value')/10
         var contrast   = $root.find('.contrast-slider').slider('get value')  /10
         $root.find('.input-image').css('filter', `brightness(${brightness}) contrast(${contrast})`)
+    }
+
+    this._dbg_highlight_manual_matches = function(radius=10){
+        $('.highlighted-manual-point').remove()
+
+        for(var fname0 in global.input_files){
+            var f = global.input_files[fname0];
+            for(var fname1 in f.tracking_results){
+                console.log(fname0, fname1, is_processed(fname0, fname1))
+                if(!is_processed(fname0, fname1))
+                    continue;
+                var tracking_results = f.tracking_results[fname1];
+                var n_auto_points    = tracking_results.n_matched_points;
+                var manual_points0   = tracking_results.points0.slice(n_auto_points)
+                var manual_points1   = tracking_results.points1.slice(n_auto_points)
+
+                var $svg0 = $(`[filename0="${fname0}"][filename1="${fname1}"] .left.tracking-overlay-svg`)
+                var $svg1 = $(`[filename0="${fname0}"][filename1="${fname1}"] .right.tracking-overlay-svg`)
+
+                for(var i of arange(manual_points0.length)){
+                    var p0 = manual_points0[i]
+                    var p1 = manual_points1[i]
+
+                    var $point0     = $(document.createElementNS('http://www.w3.org/2000/svg','circle'));
+                    var $point1     = $(document.createElementNS('http://www.w3.org/2000/svg','circle'));
+                    const attrs = {
+                        fill : "cyan",
+                        r    : radius,
+                    };
+                    $point0.attr(attrs).attr({cx:p0[1], cy:p0[0]}).addClass('highlighted-manual-point');
+                    $point1.attr(attrs).attr({cx:p1[1], cy:p1[0]}).addClass('highlighted-manual-point');
+                    $svg0.append($point0);
+                    $svg1.append($point1);
+                }
+            }
+        }
     }
 
 }; //RootTracking
