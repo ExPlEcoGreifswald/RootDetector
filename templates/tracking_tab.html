@@ -1,0 +1,120 @@
+<table class="ui basic celled table accordion" id="tracking-filetable" style="border-top-width: 0px;">
+    <thead>
+        <tr>
+          <th>No Image Pairs Loaded</th>
+        </tr>
+    </thead>
+    
+    <tbody>
+      <template id="tracking-item">
+        <tr class="ui title" filename0="${filename0}" filename1="${filename1}">
+          <td style="width:50%;"> 
+            <i class="dropdown icon"></i>
+            <label>${filename0}</label>
+          </td>
+          <td style="width:50%;">
+            <label>${filename1}</label>
+          </td>
+
+          <!--<td style="display:flex; justify-content: space-around;" onclick="event.stopPropagation();">
+            <i class="grey close icon"></i>
+          </td>-->
+        </tr>
+
+        <tr style="display:none" filename0="${filename0}" filename1="${filename1}">
+          <td colspan="5" class="ui content" style="padding:0px; padding-bottom:10px;">
+            <div class="loading-message" style="display:flex;justify-content: center;">
+              <i class="spinner loading icon"></i>
+              Loading...
+            </div>
+
+            <div class="content">
+            <div class="ui bottom attached secondary icon menu" style="border-top-width: 0px;">
+              <a class="item" onclick="RootTracking.on_process_clicked(event)"  data-tooltip="Process" data-position="bottom left">
+                <i class="play icon"></i>
+              </a>
+
+              <a class="item" onclick="RootTracking.on_apply_corrections(event)" data-tooltip="Apply manual corrections" data-position="bottom left">
+                <i class="check icon"></i>
+              </a>
+
+              <a class="item view-menu-button" data-position="bottom left">
+                <i class="eye icon"></i>
+              </a>
+              <div class="ui flowing popup view-menu-popup">
+                <div class="ui disabled checkbox show-growthmap-checkbox">
+                  <input type="checkbox">
+                  <label>Show growth map</label>
+                </div>
+                <div class="ui divider" style="border:0px;"></div>
+                <div class="ui disabled checkbox show-matched-points-checkbox">
+                  <input type="checkbox">
+                  <label>Show matched points</label>
+                </div>
+                <div class="ui divider"></div>
+                <div class="ui slider brightness-slider" style="padding:5px">Brightness</div>
+                <div class="ui slider contrast-slider"   style="padding:5px">Contrast</div>
+              </div>
+              <script>
+                $('.view-menu-button').last().popup({hoverable:true});
+                $('.view-menu-popup').last().find('.checkbox').checkbox();
+                $('.view-menu-popup').last().find('.ui.slider').slider({onMove:RootTracking.on_slider, max:30}).slider('set value', 10);
+              </script>
+
+              <a class="item" onclick="on_download_tracking_single(event)" data-tooltip="Download results" data-position="bottom left">
+                <i class="download icon"></i>
+              </a>
+
+              <a class="item help-menu-button"><i class="help icon"></i></a>
+              <div class="ui segment flowing popup">
+                <ul class="ui list">
+                  <li><b>SHIFT + Drag</b> to move the image</li>
+                  <li><b>SHIFT + Mouse wheel</b> to zoom</li>
+                  <li><b>SHIFT + Double-click</b> to reset</li>
+                  <li><b>CTRL + Click</b> in both images to add a manual correction point</li>
+                  <li><b>CTRL + Drag</b> within the right image from <span class="ui red text">red</span> to <span class="ui green text">green</span> to add a manual correction point</li>
+                  <li><b>CTRL + Click</b> on a highlighted <span class="ui teal text">cyan</span> point to remove it</li>
+                </ul>
+              </div>
+              <script>$('.help-menu-button').last().popup({hoverable:false});</script>
+            </div>
+            <div style="display: flex; align-items: flex-start; justify-content: center;" >
+            {% raw %}
+              {{tmpl({position:"left"})  "#tracking-image"}}
+              {{tmpl({position:"right"}) "#tracking-image"}}
+              {{tmpl({}) "#progress-dimmer"}}
+            {% endraw %}
+            </div>
+            </div>
+          </td>
+        </tr>
+      </template>
+    
+      <template id="tracking-image">
+        <div class="unselectable view-box ${position}"
+             style="max-width:50%; position:relative; overflow:hidden; background-color:grey;"
+             ondblclick ="RootTracking.on_svg_dblclick(event)">
+          <div class="transform-box" style="transform: matrix(1,0,0,1,0,0)"
+               onmousedown="RootTracking.on_svg_mousedown(event)"
+               onmousemove="RootTracking.on_svg_mousemove(event)"
+               onwheel    ="RootTracking.on_svg_wheel(event)">
+            <img  class="${position} input-image unselectable pixelated" style="max-width:100%; max-height:90vh; pointer-events: none;">
+            <img  class="${position} overlay unselectable pixelated" 
+                  style="position:absolute; top:0px; left:0px; width:100%; height:100%; pointer-events:none; display:none;">
+            <svg  class="${position} tracking-overlay-svg"
+                  style="position:absolute; pointer-events: none;
+                         top:0px; left:0px; 
+                         width:100%; height:100%;"
+                  viewBox="0 0 1 1">  <!--viewBox adjusted in javascript-->
+            
+              <circle class="cursor" cx="0" cy="0" r="0px" fill="red" />
+              <!--points="" adjusted in javascript-->
+              <polyline class="matched-points" style="display:none" points="" fill="none" stroke="none"
+                        marker-start="url(#dot-marker)" marker-mid="url(#dot-marker)" marker-end="url(#dot-marker)" />
+           </svg>
+          </div>
+        </div>
+      </template>
+
+    </tbody>
+  </table>

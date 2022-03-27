@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+
+{% block htmltitle %}DigIT RootDetector{% endblock %}
+
+
+{% block scripts %}
+<script src="root_settings.js">   </script>
+{% endblock scripts%}
+
+
+
+{% block    tabs %}
+    <div class="ui top attached tabular menu">
+      <a class="active item" data-tab="first">   Detection</a>
+      <a class="item"        data-tab="tracking">Tracking </a>
+      <a class="item"        data-tab="second">  Training      </a>
+    </div>
+
+    <div class="ui bottom attached tab" data-tab="tracking">
+        {% include 'tracking_tab.html' %}
+    </div>
+{% endblock tabs %}
+
+
+
+
+
+
+
+
+{% block    modals %}
+    {% include 'modals.html' %}
+{% endblock modals %}
+
