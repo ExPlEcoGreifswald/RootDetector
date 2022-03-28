@@ -1,74 +1,90 @@
-import threading, queue, json, os, glob, pickle
+import threading, queue, json, os, glob, pickle, time
 import PIL.Image
 import numpy as np
 
+from base.backend.settings import Settings as BaseSettings
+
+
 class GLOBALS:
-    active_model           = ''                #modelname
-    model                  = None              #TF model
-    exmask_enabled         = False
-    exmask_active_model    = ''                #modelname
-    exmask_model           = None              #TF model
-    tracking_active_model  = ''
+    settings:'Settings'    = None  #see below
+    root_path:str          = ''
+
+    model:object           = None  #pre-loaded detection model
+    exmask_model:object    = None  #pre-loaded exclusion mask model
 
     processing_lock        = threading.RLock()
 
 
-def init():
-    load_settings()
+def init(root_path):
+    GLOBALS.root_path = os.path.normpath(root_path)
+    GLOBALS.settings  = Settings()
 
-def load_settings():
-    settings = json.load(open('settings.json'))
-    set_settings(settings)
 
-def get_settings():
-    modelfiles = glob.glob('models/root_detection_models/*.pkl')
-    modelnames = [os.path.splitext(os.path.basename(fname))[0] for fname in modelfiles]
-    exmask_modelfiles   = glob.glob('models/exclusionmask_models/*.pkl')
-    exmask_modelnames   = [os.path.splitext(os.path.basename(fname))[0] for fname in exmask_modelfiles]
-    tracking_modelfiles = glob.glob('models/root_tracking_models/*.cpkl')
-    tracking_modelnames = [os.path.splitext(os.path.basename(fname))[0] for fname in tracking_modelfiles]
-    s = dict(
-        models         = modelnames,
-        active_model   = GLOBALS.active_model,
-        exmask_enabled        = GLOBALS.exmask_enabled,
-        exmask_models         = exmask_modelnames,              #available exmask-models
-        exmask_active_model   = GLOBALS.exmask_active_model,    #active exmask-model
-        tracking_models       = tracking_modelnames,            #available root tracking models
-        tracking_active_model = GLOBALS.tracking_active_model,  #active root tracking models
-    )
-    return s
+class Settings(BaseSettings):
+    DEFAULTS = {
+        'active_model'          : None,
+        'exmask_active_model'   : None,
+        'exmask_enabled'        : False,
+        'tracking_active_model' : None,
+    }
 
-def set_settings(s):
-    print('New settings:',s)
-    newmodelname = s.get('active_model')
-    if newmodelname != GLOBALS.active_model:
-        load_model(newmodelname)
-    GLOBALS.exmask_enabled      = s.get('exmask_enabled', GLOBALS.exmask_enabled)
-    if s.get('exmask_model') != GLOBALS.exmask_active_model:
-        load_exmask_model(s.get('exmask_model'))
-    GLOBALS.tracking_active_model = s.get('tracking_model')
-    json.dump(dict(
-        active_model   = GLOBALS.active_model,
-        exmask_enabled = GLOBALS.exmask_enabled,
-        exmask_model   = GLOBALS.exmask_active_model,
-        tracking_model = GLOBALS.tracking_active_model,
-    ), open('settings.json','w'))
+    @classmethod
+    def get_defaults(cls):
+        available_models = cls.get_available_models()
+        first_or_none    = lambda x: x[0] if len(x) else None 
+        return {
+            'active_model'          : first_or_none(available_models['models']),
+            'exmask_enabled'        : False,
+            'exmask_active_model'   : first_or_none(available_models['exmask_models']),
+            'tracking_active_model' : first_or_none(available_models['tracking_models']),
+        }
+
+    @staticmethod
+    def get_available_models():
+        detection_modelfiles = glob.glob(f'{GLOBALS.root_path}/models/root_detection_models/*.pkl')
+        detection_modelnames = [os.path.splitext(os.path.basename(fname))[0] for fname in detection_modelfiles]
+        exmask_modelfiles    = glob.glob(f'{GLOBALS.root_path}/models/exclusionmask_models/*.pkl')
+        exmask_modelnames    = [os.path.splitext(os.path.basename(fname))[0] for fname in exmask_modelfiles]
+        tracking_modelfiles  = glob.glob(f'{GLOBALS.root_path}/models/root_tracking_models/*.cpkl')
+        tracking_modelnames  = [os.path.splitext(os.path.basename(fname))[0] for fname in tracking_modelfiles]
+
+        return {
+            'models'          : detection_modelnames,
+            'exmask_models'   : exmask_modelnames,
+            'tracking_models' : tracking_modelnames,
+        }
+
+    def set_settings(self, s):
+        super().set_settings(s)
+        #TODO: remove this
+        load_models_from_settings(self)
+
+
+def load_models_from_settings(settings:'Settings'):
+    load_model(settings.active_model)
+    load_exmask_model(settings.exmask_active_model)
 
 def load_model(name):
     '''Loads the root segmentation model'''
-    filepath             = os.path.join('models/root_detection_models', name+'.pkl')
+    filepath             = os.path.join(f'{GLOBALS.root_path}/models/root_detection_models/{name}.pkl')
+    if not os.path.exists(filepath):
+        print(f'[ERROR] cannot load model {name}')
+        return
     print('Loading model', filepath)
+    t0 = time.time()
     GLOBALS.model        = pickle.load(open(filepath, 'rb'))
-    GLOBALS.active_model = name
-    print('Finished loading', filepath)
+    print(f'Finished loading in {time.time() - t0:.3f} seconds')
 
 def load_exmask_model(name):
     '''Loads the exclusion mask model'''
-    filepath                    = os.path.join('models/exclusionmask_models', name+'.pkl')
+    filepath                    = os.path.join(f'{GLOBALS.root_path}/models/exclusionmask_models/{name}.pkl')
+    if not os.path.exists(filepath):
+        print(f'[ERROR] cannot load exclusion mask model {name}')
+        return
     print('Loading model', filepath)
+    t0 = time.time()
     GLOBALS.exmask_model        = pickle.load(open(filepath, 'rb'))
-    GLOBALS.exmask_active_model = name
-    print('Finished loading', filepath)
+    print(f'Finished loading in {time.time() - t0:.3f} seconds')
 
 
 def write_as_png(path,x):
@@ -92,7 +108,7 @@ def load_image(path):
     x = x[...,:3]
     return x
 
-
+#TODO: remove, already upstream
 class PubSub:
     subscribers = []
 

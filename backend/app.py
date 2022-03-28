@@ -11,8 +11,11 @@ from . import root_detection
 class App(BaseApp):
     def __init__(self, *args, **kw):
         super().__init__(*args, **kw)
-        backend.init()
-        self.settings = backend
+        if self.is_reloader:
+            return
+        
+        backend.init(self.root_path)
+        self.settings = backend.GLOBALS.settings
 
 
     #override

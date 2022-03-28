@@ -15,7 +15,7 @@ def process_image(image_path, no_exmask=False, **kwargs):
     with GLOBALS.processing_lock:
         progress_callback=lambda x: PubSub.publish({'progress':x, 'image':os.path.basename(image_path), 'stage':'roots'})
         segmentation_result = GLOBALS.model.process_image(image_path, progress_callback=progress_callback)
-        if GLOBALS.exmask_enabled and not no_exmask:
+        if GLOBALS.settings.exmask_enabled and not no_exmask:
             progress_callback=lambda x: PubSub.publish({'progress':x, 'image':os.path.basename(image_path), 'stage':'mask'})
             exmask_result = GLOBALS.exmask_model.process_image(image_path, progress_callback=progress_callback)
             segmentation_result = paste_exmask(segmentation_result, exmask_result)
