@@ -104,8 +104,8 @@ var RootTracking = new function() {
         $dimmer.find('.content.failed').hide()
 
         if(upload_images){
-            await upload_file_to_flask('/file_upload', GLOBAL.files[filename0].file, true);
-            await upload_file_to_flask('/file_upload', GLOBAL.files[filename1].file, true);
+            await upload_file_to_flask(GLOBAL.files[filename0]);
+            await upload_file_to_flask(GLOBAL.files[filename1]);
         }
 
         console.log(`Sending root tracking request for files ${filename0} and ${filename1}`);

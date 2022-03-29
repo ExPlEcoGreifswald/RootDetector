@@ -13,7 +13,7 @@ from backend import GLOBALS
 
 def process(filename0, filename1, previous_data:dict=None):
     print(f'Performing root tracking on files {filename0} and {filename1}')
-    modelfile  = os.path.join('models/root_tracking_models', GLOBALS.tracking_active_model+'.cpkl')
+    modelfile  = os.path.join('models/root_tracking_models', GLOBALS.settings.tracking_active_model+'.cpkl')
     matchmodel = cloudpickle.load(open(modelfile, 'rb'))
 
     seg0f = f'{filename0}.segmentation.png'
@@ -42,8 +42,8 @@ def process(filename0, filename1, previous_data:dict=None):
             print()
             output['success'] = success = (len(output['points0'])>=16)
             output['n_matched_points'] = len(output['points0'])
-            output['tracking_model']     = GLOBALS.tracking_active_model
-            output['segmentation_model'] = GLOBALS.active_model
+            output['tracking_model']     = GLOBALS.settings.tracking_active_model
+            output['segmentation_model'] = GLOBALS.settings.active_model
     else:
         output      = {
             'points0'            : np.asarray(previous_data['points0']).reshape(-1,2),
