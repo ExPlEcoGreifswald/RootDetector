@@ -54,13 +54,14 @@ class Settings(BaseSettings):
             'tracking_models' : tracking_modelnames,
         }
 
-    def set_settings(self, s):
-        super().set_settings(s)
+    def set_settings(self, s, *args, **kw):
+        super().set_settings(s, *args, **kw)
         #TODO: remove this
         load_models_from_settings(self)
 
 
 def load_models_from_settings(settings:'Settings'):
+    print('load_models_from_settings', settings.get_defaults())
     load_model(settings.active_model)
     load_exmask_model(settings.exmask_active_model)
 
@@ -85,6 +86,18 @@ def load_exmask_model(name):
     t0 = time.time()
     GLOBALS.exmask_model        = pickle.load(open(filepath, 'rb'))
     print(f'Finished loading in {time.time() - t0:.3f} seconds')
+
+def load_tracking_model(name):
+    '''Loads the exclusion mask model'''
+    filepath                    = os.path.join(f'{GLOBALS.root_path}/models/root_tracking_models/{name}.cpkl')
+    if not os.path.exists(filepath):
+        print(f'[ERROR] cannot load tracking model {name}')
+        return
+    print('Loading model', filepath)
+    t0 = time.time()
+    model = pickle.load(open(filepath, 'rb'))
+    print(f'Finished loading in {time.time() - t0:.3f} seconds')
+    return model
 
 
 def write_as_png(path,x):

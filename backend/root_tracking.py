@@ -13,8 +13,9 @@ from backend import GLOBALS
 
 def process(filename0, filename1, previous_data:dict=None):
     print(f'Performing root tracking on files {filename0} and {filename1}')
-    modelfile  = os.path.join('models/root_tracking_models', GLOBALS.settings.tracking_active_model+'.cpkl')
-    matchmodel = cloudpickle.load(open(modelfile, 'rb'))
+    #modelfile  = os.path.join('models/root_tracking_models', GLOBALS.settings.tracking_active_model+'.cpkl')
+    #cloudpickle.load(open(modelfile, 'rb'))
+    matchmodel = backend.load_tracking_model(GLOBALS.settings.tracking_active_model)
 
     seg0f = f'{filename0}.segmentation.png'
     seg1f = f'{filename1}.segmentation.png'

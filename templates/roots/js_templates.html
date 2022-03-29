@@ -48,7 +48,7 @@
     {# {{ tracking_item_image("right")                         | indent }}   #}
     {{ base_js_templates.content_image(name="left input",  overlay=True) | indent(8) }}
     {{ base_js_templates.content_image(name="right input", overlay=True) | indent(8) }}
-    {# TODO: progress-dimmer() #}
+    {{ base_js_templates.progress_dimmer() }}
   </div>
 </div>
 <!--------- MACRO tracking_item_content() END---------->
@@ -71,7 +71,7 @@
         </td>-->
     </tr>
     
-    <tr style="display:none" filename0="${filename0}" filename1="${filename1}">
+    <tr style="display:none" filename0="${filename0}" filename1="${filename1}" filename="${filename0}">
         <td colspan="5" class="ui content" style="padding:0px; padding-bottom:10px;">
           {{ base_js_templates.loading_spinner() | indent(8) }}
           {{ tracking_item_content()             | indent(8) }}
