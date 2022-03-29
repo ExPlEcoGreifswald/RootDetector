@@ -1,12 +1,89 @@
-<table class="ui basic celled table accordion" id="tracking-filetable" style="border-top-width: 0px;">
-    <thead>
-        <tr>
-          <th>No Image Pairs Loaded</th>
-        </tr>
-    </thead>
+
+<!--------- INCLUDE roots/js_templates.html START---------->
+
+{% import 'base/js_templates.html' as base_js_templates %}
+
+{% macro tracking_item_image(position) %}
+<!--------- MACRO tracking_item_image({{ position }}) START---------->
+<div class="unselectable view-box {{ position }}"
+        style="max-width:50%; position:relative; overflow:hidden; background-color:grey;"
+        ondblclick ="RootTracking.on_svg_dblclick(event)">
+    <div class="transform-box" style="transform: matrix(1,0,0,1,0,0)"
+        onmousedown="RootTracking.on_svg_mousedown(event)"
+        onmousemove="RootTracking.on_svg_mousemove(event)"
+        onwheel    ="RootTracking.on_svg_wheel(event)">
+    <img  class="{{ position }} input-image unselectable pixelated" style="max-width:100%; max-height:90vh; pointer-events: none;">
+    <img  class="{{ position }} overlay unselectable pixelated" 
+            style="position:absolute; top:0px; left:0px; width:100%; height:100%; pointer-events:none; display:none;">
+    <svg  class="{{ position }} tracking-overlay-svg"
+            style="position:absolute; pointer-events: none;
+                    top:0px; left:0px; 
+                    width:100%; height:100%;"
+            viewBox="0 0 1 1">  <!--viewBox adjusted in javascript-->
     
-    <tbody>
-      <template id="tracking-item">
+        <circle class="cursor" cx="0" cy="0" r="0px" fill="red" />
+        <!--points="" adjusted in javascript-->
+        <polyline class="matched-points" style="display:none" points="" fill="none" stroke="none"
+                marker-start="url(#dot-marker)" marker-mid="url(#dot-marker)" marker-end="url(#dot-marker)" />
+    </svg>
+    </div>
+</div>
+<!--------- MACRO tracking_item_image({{ position }}) END---------->
+{% endmacro %}
+
+
+
+{% macro tracking_item_content() %}
+<!--------- MACRO tracking_item_content() START---------->
+<div class="content" style="display:none">
+  {{ base_js_templates.content_menu(
+    button_new_box           = False, 
+    callback_on_process      = "RootTracking.on_process_clicked",
+    view_menu_results_layout = False
+  ) | indent }}
+
+  {# TODO: move styles to css file #}
+  <div class="image-container stripes" style="display:flex; align-items: center; justify-content:space-around; width:100%; height:calc(100vh - 120px);">
+    {{ tracking_item_image("left")                          | indent }}
+    {{ tracking_item_image("right")                         | indent }}
+    {# TODO: progress-dimmer() #}
+  </div>
+</div>
+<!--------- MACRO tracking_item_content() END---------->
+{% endmacro %}
+
+
+
+<template id="tracking-item">
+    <tr class="ui title" filename0="${filename0}" filename1="${filename1}">
+        <td style="width:50%;"> 
+            <i class="dropdown icon"></i>
+            <label>${filename0}</label>
+        </td>
+        <td style="width:50%;">
+            <label>${filename1}</label>
+        </td>
+
+        <!--<td style="display:flex; justify-content: space-around;" onclick="event.stopPropagation();">
+            <i class="grey close icon"></i>
+        </td>-->
+    </tr>
+    
+    <tr style="display:none" filename0="${filename0}" filename1="${filename1}">
+        <td colspan="5" class="ui content" style="padding:0px; padding-bottom:10px;">
+          {{ base_js_templates.loading_spinner() | indent(8) }}
+          {{ tracking_item_content()             | indent(8) }}
+        </td>
+    </tr>
+</template>
+
+
+
+
+
+{#
+    
+    <template id="tracking-item">
         <tr class="ui title" filename0="${filename0}" filename1="${filename1}">
           <td style="width:50%;"> 
             <i class="dropdown icon"></i>
@@ -90,31 +167,7 @@
         </tr>
       </template>
     
-      <template id="tracking-image">
-        <div class="unselectable view-box ${position}"
-             style="max-width:50%; position:relative; overflow:hidden; background-color:grey;"
-             ondblclick ="RootTracking.on_svg_dblclick(event)">
-          <div class="transform-box" style="transform: matrix(1,0,0,1,0,0)"
-               onmousedown="RootTracking.on_svg_mousedown(event)"
-               onmousemove="RootTracking.on_svg_mousemove(event)"
-               onwheel    ="RootTracking.on_svg_wheel(event)">
-            <img  class="${position} input-image unselectable pixelated" style="max-width:100%; max-height:90vh; pointer-events: none;">
-            <img  class="${position} overlay unselectable pixelated" 
-                  style="position:absolute; top:0px; left:0px; width:100%; height:100%; pointer-events:none; display:none;">
-            <svg  class="${position} tracking-overlay-svg"
-                  style="position:absolute; pointer-events: none;
-                         top:0px; left:0px; 
-                         width:100%; height:100%;"
-                  viewBox="0 0 1 1">  <!--viewBox adjusted in javascript-->
-            
-              <circle class="cursor" cx="0" cy="0" r="0px" fill="red" />
-              <!--points="" adjusted in javascript-->
-              <polyline class="matched-points" style="display:none" points="" fill="none" stroke="none"
-                        marker-start="url(#dot-marker)" marker-mid="url(#dot-marker)" marker-end="url(#dot-marker)" />
-           </svg>
-          </div>
-        </div>
-      </template>
+#}
 
-    </tbody>
-  </table>
+<!--------- INCLUDE roots/js_templates.html END---------->
+

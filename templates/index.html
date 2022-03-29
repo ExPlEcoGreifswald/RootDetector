@@ -1,35 +1,23 @@
-{% extends "base.html" %}
+<!--{{warning}}-->
+<html>
+<head>
+    <title>DigIT RootDetector</title>
+    {# TODO: indent #}
+    {% include 'base/scripts.html'   %}
+    {% include 'roots/scripts.html'  %}
+
+    {% include  'base/js_templates.html' %}
+    {% include  'roots/js_templates.html' %}
+</head>
 
 
-{% block htmltitle %}DigIT RootDetector{% endblock %}
+<body onload="init()">
 
+    {% include 'base/top_menu.html'        %}
 
-{% block scripts %}
-<script src="root_settings.js">   </script>
-{% endblock scripts%}
+    {% include 'roots/main_container.html' %}
 
+    {% include 'roots/modals.html'          %}
 
-
-{% block    tabs %}
-    <div class="ui top attached tabular menu">
-      <a class="active item" data-tab="first">   Detection</a>
-      <a class="item"        data-tab="tracking">Tracking </a>
-      <a class="item"        data-tab="second">  Training      </a>
-    </div>
-
-    <div class="ui bottom attached tab" data-tab="tracking">
-        {% include 'tracking_tab.html' %}
-    </div>
-{% endblock tabs %}
-
-
-
-
-
-
-
-
-{% block    modals %}
-    {% include 'modals.html' %}
-{% endblock modals %}
-
+</body>
+</html>

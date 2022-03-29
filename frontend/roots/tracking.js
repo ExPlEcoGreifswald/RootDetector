@@ -13,7 +13,8 @@ var RootTracking = new function() {
                 var parsed1 = parse_filename(f1.name)
                 if(parsed0.base == parsed1.base && parsed0.date < parsed1.date){
                     $('template#tracking-item').tmpl({filename0:f0.name, filename1:f1.name}).appendTo($table)
-                    global.input_files[f0.name].tracking_results[f1.name] = {};
+                    //GLOBAL.files[f0.name].tracking_results[f1.name] = {};
+                    GLOBAL.files[f0.name].tracking_results = {[f1.name]: {}};  //TODO: refactor
                 }
             }
         }
@@ -39,13 +40,20 @@ var RootTracking = new function() {
         var splits = fname.split('_')
         var base   = splits.slice(0,3).join('_')
         var date   = splits[3];
-        return {base:base, date:new Date(date)}
+        var [a,b,c]    = date.split('.')
+        if(a.length>2)
+            var [y,m,d] = [a,b,c].map(Number)
+        else {
+            var [y,m,d] = [c,b,a].map(Number)
+            y           = y<70? (y+2000) : (y+1900);    //1970-2069
+        }
+        return {base:base, date:new Date(y,m-1,d)}
     }
 
 
     //called when user clicks on a file table row to open it
     this.on_accordion_open = function(){
-        $root = $(this)
+        var $root = $(this)
 
         var $imgelement0 = this.find('img.left.input-image');
         var $imgelement1 = this.find('img.right.input-image');
@@ -54,8 +62,8 @@ var RootTracking = new function() {
         if(!content_already_loaded){
             var filename0   = this.attr('filename0');
             var filename1   = this.attr('filename1');
-            var file0       = global.input_files[filename0].file;
-            var file1       = global.input_files[filename1].file;
+            var file0       = GLOBAL.files[filename0];
+            var file1       = GLOBAL.files[filename1];
 
             //hide all content except the loading message to avoid jerking //FIXME: jerking anyway
             $root = this;
@@ -72,8 +80,8 @@ var RootTracking = new function() {
                 $root.find('.loading-message').hide()
                 $root.find('div.content').show()
             });
-            set_imgsrc_from_file($imgelement0, file0);
-            set_imgsrc_from_file($imgelement1, file1);
+            load_image_from_file($imgelement0, file0);
+            load_image_from_file($imgelement1, file1);
         }
     };
 
@@ -96,8 +104,8 @@ var RootTracking = new function() {
         $dimmer.find('.content.failed').hide()
 
         if(upload_images){
-            await upload_file_to_flask('/file_upload', global.input_files[filename0].file, true);
-            await upload_file_to_flask('/file_upload', global.input_files[filename1].file, true);
+            await upload_file_to_flask('/file_upload', GLOBAL.files[filename0].file, true);
+            await upload_file_to_flask('/file_upload', GLOBAL.files[filename1].file, true);
         }
 
         console.log(`Sending root tracking request for files ${filename0} and ${filename1}`);
@@ -137,7 +145,7 @@ var RootTracking = new function() {
     */
     var set_tracking_data = function(filename0, filename1, data){
         console.log('Tracking results: ', data)
-        global.input_files[filename0].tracking_results[filename1] = data;
+        GLOBAL.files[filename0].tracking_results[filename1] = data;
         paint_matched_points(filename0, filename1, data.points0, data.points1);
 
         var $root    = $(`[filename0="${filename0}"][filename1="${filename1}"]`);
@@ -276,7 +284,7 @@ var RootTracking = new function() {
             var $single_point_left  = $root.find('svg.left.tracking-overlay-svg .single-click-correction-point')
             var $single_point_right = $root.find('svg.right.tracking-overlay-svg .single-click-correction-point')
             if($single_point_left.length>0 && $single_point_right.length>0){
-                var tracking_results = global.input_files[filename0].tracking_results[filename1];
+                var tracking_results = GLOBAL.files[filename0].tracking_results[filename1];
                 tracking_results.points0.push([Number($single_point_left.attr('cy')),  Number($single_point_left.attr('cx')) ])
                 tracking_results.points1.push([Number($single_point_right.attr('cy')), Number($single_point_right.attr('cx'))])
                 paint_matched_points(filename0, filename1, tracking_results.points0, tracking_results.points1)
@@ -338,7 +346,7 @@ var RootTracking = new function() {
             var filename1 = $(mousedown_event.target).closest('[filename1]').attr('filename1');
 
             var index = Number($highlighted_point.attr('index'));
-            var tracking_results = global.input_files[filename0].tracking_results[filename1];
+            var tracking_results = GLOBAL.files[filename0].tracking_results[filename1];
             tracking_results.points0.splice(index, 1)
             tracking_results.points1.splice(index,1)
             paint_matched_points(filename0, filename1, tracking_results.points0, tracking_results.points1)
@@ -371,7 +379,7 @@ var RootTracking = new function() {
         var points_str        = $correction_lines.get().map(x=>x.getAttribute('points'));
         var points            = points_str.map( x => x.split(/[, ]/g).filter(Boolean).map(Number) )
 
-        var tracking_results = global.input_files[filename0].tracking_results[filename1];
+        var tracking_results = GLOBAL.files[filename0].tracking_results[filename1];
         var post_data = {
             points0:           tracking_results.points0,
             points1:           tracking_results.points1,
@@ -385,7 +393,7 @@ var RootTracking = new function() {
     }
 
     var is_processed = function(filename0, filename1){
-        var r = global.input_files[filename0].tracking_results[filename1];
+        var r = GLOBAL.files[filename0].tracking_results[filename1];
         return r.growthmap != undefined;
     }
 
@@ -426,7 +434,7 @@ var RootTracking = new function() {
         var $root            = $svg.closest('[filename0][filename1]');
         var filename0        = $root.attr('filename0')
         var filename1        = $root.attr('filename1')
-        var tracking_results = global.input_files[filename0].tracking_results[filename1]
+        var tracking_results = GLOBAL.files[filename0].tracking_results[filename1]
         if(tracking_results==undefined)
             return;
 
@@ -478,8 +486,8 @@ var RootTracking = new function() {
     this._dbg_highlight_manual_matches = function(radius=10){
         $('.highlighted-manual-point').remove()
 
-        for(var fname0 in global.input_files){
-            var f = global.input_files[fname0];
+        for(var fname0 in GLOBAL.files){
+            var f = GLOBAL.files[fname0];
             for(var fname1 in f.tracking_results){
                 console.log(fname0, fname1, is_processed(fname0, fname1))
                 if(!is_processed(fname0, fname1))
