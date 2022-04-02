@@ -46,3 +46,7 @@ class TrackingTest(BaseCase):
             self.sleep(1)
 
         #assert 0
+
+
+
+#TODO: change segmentation model inbetween two processing runs

@@ -131,9 +131,9 @@ var RootTracking = new function() {
             $dimmer.find('.content.failed').show()
             $dimmer.dimmer({closable:true});
         } ).always( () => {
+            $root.find('polyline.correction-line').remove()
             delete_image(filename0);
             delete_image(filename1);
-            $root.find('polyline.correction-line').remove()
         });
     }
 
@@ -151,7 +151,7 @@ var RootTracking = new function() {
         var $root    = $(`[filename0="${filename0}"][filename1="${filename1}"]`);
         var $overlay = $root.find(`img.right.overlay`)
             $overlay.attr('src', url_for_image(data.growthmap_rgba))
-        var $chkbx0 = $root.find('.show-growthmap-checkbox')
+        var $chkbx0 = $root.find('.show-turnover-checkbox')
             $chkbx0.removeClass('disabled').checkbox({onChange:()=>{
                 $overlay.toggle($chkbx0.checkbox('is checked'));
         }}).checkbox('check')
@@ -207,59 +207,7 @@ var RootTracking = new function() {
         }
     }
 
-    this.on_svg_wheel = function(event){
-        if(!event.shiftKey)
-            return;
-        
-        event.preventDefault();
-        var $img   = $(event.target);
-        var xform   = parse_css_matrix($(event.target).css('transform'));
-        var x      = xform.x * (1 - 0.1*Math.sign(event.deltaY))
-        var y      = xform.y * (1 - 0.1*Math.sign(event.deltaY))
-        var scale  = Math.max(1.0, xform.scale * (1 - 0.1*Math.sign(event.deltaY)));
-        var matrix = `matrix(${scale}, 0, 0, ${scale}, ${x}, ${y})`
-        $img.css('transform', matrix);
-        $img.find('svg').find('circle.cursor').attr('r', 5/scale)
-    }
-
-    this.on_svg_mousedown = function(event){
-        if(event.shiftKey)
-            start_move_image(event)
-        else if(event.ctrlKey){
-            var removed = remove_point_from_click(event)
-            if(!removed){
-                single_click_correction(event)
-                drag_line_correction(event)
-            }
-        }
-    }
-
-    var start_move_image = function(mousedown_event){
-        var $img    = $(mousedown_event.target)
-        var click_y = mousedown_event.pageY;
-        var click_x = mousedown_event.pageX;
-
-        $(document).on('mousemove', function(mousemove_event) {
-            if( (mousemove_event.buttons & 0x01)==0 ){
-                $(document).off('mousemove');
-                return;
-            }
-
-            var delta_y = mousemove_event.pageY - click_y;
-            var delta_x = mousemove_event.pageX - click_x;
-                click_y = mousemove_event.pageY;
-                click_x = mousemove_event.pageX;
-            mousemove_event.stopPropagation();
-            
-            var xform  = parse_css_matrix($img.css('transform'));
-            var x      = xform.x + delta_x;
-            var y      = xform.y + delta_y;
-            var matrix = `matrix(${xform.scale}, 0, 0, ${xform.scale}, ${x}, ${y})`
-            $img.css('transform', matrix);
-        })
-    }
-
-    var single_click_correction = function(mousedown_event){
+    this.single_click_correction = function(mousedown_event){
         var $root   = $(mousedown_event.target).closest("[filename0][filename1]");
         var $img    = $(mousedown_event.target).find('.input-image')
         var $svg    = $img.siblings('svg');
@@ -281,8 +229,8 @@ var RootTracking = new function() {
             $point0.attr(attrs).attr({cx:start_xy[0], cy:start_xy[1]}).addClass('single-click-correction-point');
             $svg.append($point0);
 
-            var $single_point_left  = $root.find('svg.left.tracking-overlay-svg .single-click-correction-point')
-            var $single_point_right = $root.find('svg.right.tracking-overlay-svg .single-click-correction-point')
+            var $single_point_left  = $root.find('svg.left.overlay .single-click-correction-point')
+            var $single_point_right = $root.find('svg.right.overlay .single-click-correction-point')
             if($single_point_left.length>0 && $single_point_right.length>0){
                 var tracking_results = GLOBAL.files[filename0].tracking_results[filename1];
                 tracking_results.points0.push([Number($single_point_left.attr('cy')),  Number($single_point_left.attr('cx')) ])
@@ -300,7 +248,7 @@ var RootTracking = new function() {
         });
     }
 
-    var drag_line_correction = function(mousedown_event){
+    this.drag_line_correction = function(mousedown_event){
         var $root   = $(mousedown_event.target).closest("[filename0][filename1]");
         var filename0 = $root.attr("filename0");
         var filename1 = $root.attr("filename1");
@@ -339,7 +287,7 @@ var RootTracking = new function() {
         });
     }
 
-    var remove_point_from_click = function(mousedown_event){
+    this.remove_point_from_click = function(mousedown_event){
         var $highlighted_point = $(mousedown_event.target).find('svg').find('.highlighted-matched-point')
         if($highlighted_point.length>0){
             var filename0 = $(mousedown_event.target).closest('[filename0]').attr('filename0');
@@ -356,16 +304,6 @@ var RootTracking = new function() {
         return false;
     }
 
-    //reset view
-    this.on_svg_dblclick = function(e){
-        if(!e.shiftKey)
-            return;
-        var $img   = $(e.target).closest('.view-box').find('.transform-box');
-        $img.css('transform', "matrix(1,0,0,1,0,0)");
-    }
-
-
-
     //called when user clicks on the "check" button to apply manual corrrections to the growth map
     this.on_apply_corrections = function(event){
         var $root             = $(event.target).closest("[filename0][filename1]");
@@ -374,7 +312,7 @@ var RootTracking = new function() {
         if(!is_processed(filename0, filename1))
             return;
         
-        var $svg              = $root.find('svg.right.tracking-overlay-svg')
+        var $svg              = $root.find('svg.right.overlay')
         var $correction_lines = $svg.find('polyline.correction-line')
         var points_str        = $correction_lines.get().map(x=>x.getAttribute('points'));
         var points            = points_str.map( x => x.split(/[, ]/g).filter(Boolean).map(Number) )
@@ -403,8 +341,8 @@ var RootTracking = new function() {
         var p1_str = p1.map(p => `${p[1]},${p[0]}`).join(' ')
 
         var $root = $(`[filename0="${filename0}"][filename1="${filename1}"]`)
-        var $svg0 = $root.find(`.left.tracking-overlay-svg`)
-        var $svg1 = $root.find(`.right.tracking-overlay-svg`)
+        var $svg0 = $root.find(`.left.overlay`)
+        var $svg1 = $root.find(`.right.overlay`)
         $svg0.find('polyline.matched-points').attr('points', p0_str);
         $svg1.find('polyline.matched-points').attr('points', p1_str);
     }
@@ -438,8 +376,8 @@ var RootTracking = new function() {
         if(tracking_results==undefined)
             return;
 
-        var $svg0 = $root.find(`.left.tracking-overlay-svg`)
-        var $svg1 = $root.find(`.right.tracking-overlay-svg`)
+        var $svg0 = $root.find(`.left.overlay`)
+        var $svg1 = $root.find(`.right.overlay`)
         $svg0.find('circle.highlighted-matched-point').remove()
         $svg1.find('circle.highlighted-matched-point').remove()
         if(!$root.find('svg .matched-points').is(':visible'))
@@ -475,14 +413,6 @@ var RootTracking = new function() {
     }
 
 
-    this.on_slider = function(){
-        var $root = $(this).closest('[filename0][filename1]')
-
-        var brightness = $root.find('.brightness-slider').slider('get value')/10
-        var contrast   = $root.find('.contrast-slider').slider('get value')  /10
-        $root.find('.input-image').css('filter', `brightness(${brightness}) contrast(${contrast})`)
-    }
-
     this._dbg_highlight_manual_matches = function(radius=10){
         $('.highlighted-manual-point').remove()
 
@@ -497,8 +427,8 @@ var RootTracking = new function() {
                 var manual_points0   = tracking_results.points0.slice(n_auto_points)
                 var manual_points1   = tracking_results.points1.slice(n_auto_points)
 
-                var $svg0 = $(`[filename0="${fname0}"][filename1="${fname1}"] .left.tracking-overlay-svg`)
-                var $svg1 = $(`[filename0="${fname0}"][filename1="${fname1}"] .right.tracking-overlay-svg`)
+                var $svg0 = $(`[filename0="${fname0}"][filename1="${fname1}"] .left.overlay`)
+                var $svg1 = $(`[filename0="${fname0}"][filename1="${fname1}"] .right.overlay`)
 
                 for(var i of arange(manual_points0.length)){
                     var p0 = manual_points0[i]
@@ -522,4 +452,23 @@ var RootTracking = new function() {
 }; //RootTracking
 
 
+
+TrackingViewControls = class TrackingViewControls extends ViewControls{
+    //overwrite
+    static on_transformbox_mousedown(event){
+        if(super.on_transformbox_mousedown(event))
+            return;
+        else if(event.ctrlKey){
+            var removed = RootTracking.remove_point_from_click(event)
+            if(!removed){
+                RootTracking.single_click_correction(event)
+                RootTracking.drag_line_correction(event)
+            }
+        }
+    }
+
+    static on_transformbox_mousemove(event){
+        RootTracking.on_svg_mousemove(event)
+    }
+}
 
