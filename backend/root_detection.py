@@ -33,8 +33,8 @@ def process_image(image_path, no_exmask=False, **kwargs):
         skelresult_rgb   = add_mask(skelresult_rgb, mask)
 
 
-    segmentation_fname = os.path.join(output_folder, f'segmented_{basename}.png')
-    skeleton_fname     = os.path.join(output_folder, f'skeletonized_{basename}.png')
+    segmentation_fname = os.path.join(output_folder, f'{basename}.segmented.png')
+    skeleton_fname     = os.path.join(output_folder, f'{basename}.skeletonized.png')
     write_as_png(segmentation_fname, result_rgb)
     write_as_png(skeleton_fname, skelresult_rgb)
 

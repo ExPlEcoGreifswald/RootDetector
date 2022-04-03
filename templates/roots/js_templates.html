@@ -41,8 +41,7 @@
     view_menu_extras         = view_menu_tracking_extras()
   ) | indent }}
 
-  {# TODO: move styles to css file #}
-  <div class="image-container" style="display:flex; align-items: center; justify-content:space-around; width:100%; height:calc(100vh - 120px);">
+  <div class="image-container">
     {{ base_js_templates.content_image(name="left input",  overlay=True, viewcontrols="TrackingViewControls", extras=svg_overlay(name="left"))  | indent(8) }}
     {{ base_js_templates.content_image(name="right input", overlay=True, viewcontrols="TrackingViewControls", extras=svg_overlay(name="right")) | indent(8) }}
     {{ base_js_templates.progress_dimmer() }}

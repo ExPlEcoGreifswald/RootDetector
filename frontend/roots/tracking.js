@@ -9,8 +9,12 @@ var RootTracking = new function() {
                 if(f0 == f1)
                     continue;
                 
-                var parsed0 = parse_filename(f0.name)
-                var parsed1 = parse_filename(f1.name)
+                try{
+                    var parsed0 = parse_filename(f0.name)
+                    var parsed1 = parse_filename(f1.name)
+                } catch {
+                    continue;
+                }
                 if(parsed0.base == parsed1.base && parsed0.date < parsed1.date){
                     $('template#tracking-item').tmpl({filename0:f0.name, filename1:f1.name}).appendTo($table)
                     //GLOBAL.files[f0.name].tracking_results[f1.name] = {};
