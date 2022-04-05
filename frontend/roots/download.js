@@ -2,7 +2,7 @@
 
 
 
-Download = class RootDetectionDownload extends BaseDownload{
+RootDetectionDownload = class RootDetectionDownload extends BaseDownload{
     //override
     static zipdata_for_file(filename){
         var f            = GLOBAL.files[filename];

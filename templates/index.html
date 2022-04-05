@@ -1,4 +1,8 @@
 <!--{{warning}}-->
+
+{% import 'base/js_templates.html' as base_js_templates %}
+{% import 'base/top_menu.html'     as base_top_menu %}
+
 <html>
 <head>
     <title>DigIT RootDetector</title>
@@ -6,14 +10,14 @@
     {% include 'base/scripts.html'   %}
     {% include 'roots/scripts.html'  %}
 
-    {% include  'base/js_templates.html' %}
+    {{ base_js_templates.filetable_row_template(app="RootDetectorApp") }}
     {% include  'roots/js_templates.html' %}
 </head>
 
 
 <body onload="init()">
 
-    {% include 'base/top_menu.html'        %}
+    {{ base_top_menu.top_menu(app="RootDetectorApp") }}
 
     {% include 'roots/main_container.html' %}
 

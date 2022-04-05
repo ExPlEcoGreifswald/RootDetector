@@ -34,11 +34,10 @@
 <!--------- MACRO tracking_item_content() START---------->
 <div class="content" style="display:none">
   {{ content_menu.content_menu(
-    button_new_box           = False, 
-    callback_on_process      = "RootTracking.on_process_clicked",
+    callback_on_process        = "RootTracking.on_process_clicked",
     callback_apply_corrections = "RootTracking.on_apply_corrections",
-    view_menu_results_layout = False,
-    view_menu_extras         = view_menu_tracking_extras()
+    view_menu_results_layout   = False,
+    view_menu_extras           = view_menu_tracking_extras()
   ) | indent }}
 
   <div class="image-container">
