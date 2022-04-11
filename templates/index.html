@@ -1,7 +1,12 @@
 <!--{{warning}}-->
 
 {% import 'base/js_templates.html' as base_js_templates %}
-{% import 'base/top_menu.html'     as base_top_menu %}
+{% from   'base/top_menu.html'        import top_menu %}
+{% from   'roots/main_container.html' import main_container %}
+{% from   'base/modals.html'          import modal_training_progress %}
+{% from   'roots/modals.html'         import modal_settings %}
+
+{% set app = "RootDetectorApp" %}
 
 <html>
 <head>
@@ -10,18 +15,19 @@
     {% include 'base/scripts.html'   %}
     {% include 'roots/scripts.html'  %}
 
-    {{ base_js_templates.filetable_row_template(app="RootDetectorApp") }}
+    {{ base_js_templates.filetable_row_template(app)  | indent }}
     {% include  'roots/js_templates.html' %}
 </head>
 
 
-<body onload="init()">
+<body onload="{{app}}.init()">
 
-    {{ base_top_menu.top_menu(app="RootDetectorApp") }}
+    {{ top_menu(app)             | indent }}
 
-    {% include 'roots/main_container.html' %}
+    {{ main_container(app)       | indent }}
 
-    {% include 'roots/modals.html'          %}
+    {{ modal_settings()          | indent }}
+    {{ modal_training_progress() | indent }}
 
 </body>
 </html>

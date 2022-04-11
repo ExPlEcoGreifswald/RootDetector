@@ -1,6 +1,6 @@
 
 
-class RootsSettings extends BaseSettings{
+RootsSettings = class extends BaseSettings{
 
     //override
     static update_settings_modal(models){
@@ -11,8 +11,8 @@ class RootsSettings extends BaseSettings{
         var models_list = []
         for(var modelname of models.models)
             models_list.push({name:modelname, value:modelname, selected:(modelname==settings.active_model)})
-        //TODO: if(settings.active_model=='')
-        //    models_list.push({name:'[UNSAVED MODEL]', value:'', selected:true})
+        if(settings.active_model=='')
+            models_list.push({name:'[UNSAVED MODEL]', value:'', selected:true})
         $("#settings-active-model").dropdown({values: models_list, showOnFocus:false })
 
 

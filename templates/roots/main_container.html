@@ -18,5 +18,6 @@
 
 
 
-{# actual content #}
-{{ base_main_container.main_container( tabs = tabs(), extra = tracking_tab() ) }}
+{% macro main_container(app) %}
+    {{ base_main_container.main_container( app, tabs = tabs(), extra = tracking_tab() ) }}
+{% endmacro %}

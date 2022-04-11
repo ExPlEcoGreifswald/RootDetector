@@ -4,6 +4,7 @@ import os
 import flask
 
 import backend
+import backend.training
 from . import root_detection
 from . import root_tracking
 
@@ -58,6 +59,25 @@ class App(BaseApp):
             'tracking_model'     : result['tracking_model'],
             'segmentation_model' : result['segmentation_model'],
         })
-        return 'OK'
 
+    #override
+    def training(self):
+        imagefiles = dict(flask.request.form.lists())['filenames[]']
+        imagefiles = [os.path.join(self.cache_path, fname) for fname in imagefiles]
+        if not all([os.path.exists(fname) for fname in imagefiles]):
+            flask.abort(404)
+        
+        targetfiles = [ f'{imgf}.segmented.png' for imgf in imagefiles ]
+        if not all([os.path.exists(fname) for fname in targetfiles]):
+            flask.abort(404)
+        
+        backend.training.start_training(imagefiles, targetfiles)
+        return 'OK'
+    
+    #override
+    def save_model(self):
+        newname = flask.request.args['newname']
+        backend.training.save_model(newname)
+        print('New model training model saved as:',newname)
+        return 'OK'
 

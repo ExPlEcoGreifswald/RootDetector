@@ -1,7 +1,5 @@
 
-
-
-class RootDetectorApp extends BaseApp {
+RootDetectorApp = class extends BaseApp {
     static Detection       = BaseDetection;
     static Download        = RootDetectionDownload;
     static ViewControls    = ViewControls;
@@ -10,3 +8,5 @@ class RootDetectorApp extends BaseApp {
 }
 
 
+//override
+App = RootDetectorApp;

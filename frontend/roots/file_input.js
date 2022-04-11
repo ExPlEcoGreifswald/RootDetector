@@ -1,8 +1,9 @@
 
 
 class RootsFileInput extends BaseFileInput{
-    static regenerate_filetable(files){
-        BaseFileInput.regenerate_filetable(files)
+    //override
+    static refresh_filetable(files){
+        BaseFileInput.refresh_filetable(files)
         RootTracking.set_input_files(files)
     }
 }
