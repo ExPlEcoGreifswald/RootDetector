@@ -1,6 +1,6 @@
 
 RootDetectorApp = class extends BaseApp {
-    static Detection       = BaseDetection;
+    static Detection       = RootDetection;
     static Download        = RootDetectionDownload;
     static ViewControls    = ViewControls;
     static Settings        = RootsSettings;

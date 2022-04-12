@@ -22,7 +22,7 @@ class TrackingTest(BaseCase):
         root_css = f'#tracking-filetable [filename0="{filenames[1]}"]'
 
         #set the right models                      #FIXME: this is very brittle
-        self.click("label#settings-button")                                              
+        self.click("#settings-button")                                              
         self.click("div#settings-active-model")                                          
         self.click("div#settings-active-model div>:contains('2022-01-11_022_segmentation.full')")    
         self.click("div#settings-tracking-model")                                        

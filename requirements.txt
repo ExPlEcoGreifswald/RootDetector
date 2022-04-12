@@ -7,7 +7,7 @@ onnxruntime==1.7.0
 
 cloudpickle==2.0.0
 Flask==2.0.3
-numpy==1.16.6
+numpy==1.17.2
 Pillow==7.1.2
 scikit-image==0.16.2
 

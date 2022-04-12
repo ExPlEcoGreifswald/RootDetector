@@ -2,7 +2,7 @@
 
 
 {% macro tabs() %}
-<div class="ui top attached tabular menu">
+<div class="ui pointing secondary tabs menu">
     <a class="active item" data-tab="detection"> Detection</a>
     <a class="item"        data-tab="tracking">  Tracking </a>
     <a class="item"        data-tab="training">  Training </a>
@@ -11,7 +11,7 @@
 
 
 {% macro tracking_tab() %}
-    <div class="ui bottom attached tab" data-tab="tracking">
+    <div class="ui tab segment" data-tab="tracking"  style="padding:0">
         {% include 'roots/tracking_tab.html' %}
     </div>
 {% endmacro %}

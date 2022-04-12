@@ -1,10 +1,11 @@
+{% from 'base/main_container.html' import filetable_menu %}
 
 <!--------- INCLUDE tracking_tab.html START---------->
-
-<table class="ui basic celled table accordion" id="tracking-filetable" style="border-top-width: 0px;">
+{{ filetable_menu() }}
+<table class="ui unstackable table accordion" id="tracking-filetable" style="border:0px; margin:0px;">
     <thead>
         <tr>
-          <th>No Image Pairs Loaded</th>
+          <th colspan="2">No Image Pairs Loaded</th>
         </tr>
     </thead>
     
@@ -13,6 +14,7 @@
     </tbody>
 </table>
 <script> $('#tracking-filetable.accordion').accordion({duration:0, onOpening:RootTracking.on_accordion_open}) </script>
+
 
 <!--------- INCLUDE tracking_tab.html END---------->
 

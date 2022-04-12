@@ -5,13 +5,13 @@
 RootDetectionDownload = class RootDetectionDownload extends BaseDownload{
     //override
     static zipdata_for_file(filename){
-        var f            = GLOBAL.files[filename];
-        var zipdata      = {};
-        var segmentation = fetch_as_blob(url_for_image(f.results.segmentation))
-        var skeleton     = fetch_as_blob(url_for_image(f.results.skeleton))
-        zipdata[`${f.results.segmentation}`] = segmentation
-        zipdata[`${f.results.skeleton}`]     = skeleton
-        zipdata[`statistics.csv`]            = this.csv_data_for_file(filename)
+        var f                           = GLOBAL.files[filename];
+        var zipdata                     = {};
+        var segmentation                = f.results.segmentation
+        var skeleton                    = f.results.skeleton
+        zipdata[`${segmentation.name}`] = segmentation
+        zipdata[`${skeleton.name}`]     = skeleton
+        zipdata[`statistics.csv`]       = this.csv_data_for_file(filename)
         return zipdata;
     }
 
