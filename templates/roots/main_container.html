@@ -1,5 +1,5 @@
 {% import 'base/main_container.html' as base_main_container %}
-
+{% from   'roots/tracking_tab.html'  import tracking_tab %}
 
 {% macro tabs() %}
 <div class="ui pointing secondary tabs menu">
@@ -9,12 +9,6 @@
 </div>
 {% endmacro %}
 
-
-{% macro tracking_tab() %}
-    <div class="ui tab segment" data-tab="tracking"  style="padding:0">
-        {% include 'roots/tracking_tab.html' %}
-    </div>
-{% endmacro %}
 
 
 

@@ -1,0 +1,19 @@
+{% import   'base/js_templates.html'  as base_js_templates %}
+
+{% macro skeleton_checkbox() %}
+<div class="ui item disabled checkbox skeletonized-checkbox">
+    <input type="checkbox">
+    <label>Skeletonized</label>
+</div>
+{% endmacro %}
+
+
+{% macro roots_filetable_content(app)%}
+    {{ base_js_templates.filetable_content(app, view_menu_extras=skeleton_checkbox()) }}
+{% endmacro %}
+
+
+{% macro filetable_row_template(app) %}
+    {{ base_js_templates.filetable_row_template(app, content=roots_filetable_content) }}
+{% endmacro %}
+

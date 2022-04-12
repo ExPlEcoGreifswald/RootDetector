@@ -1,9 +1,9 @@
 <!--{{warning}}-->
 
-{% import 'base/js_templates.html' as base_js_templates %}
 {% from   'base/top_menu.html'        import top_menu %}
-{% from   'roots/main_container.html' import main_container %}
 {% from   'base/modals.html'          import modal_training_progress %}
+{% from   'roots/main_container.html' import main_container %}
+{% from   'roots/detection_tab.html'  import filetable_row_template %}
 {% from   'roots/modals.html'         import modal_settings %}
 
 {% set app = "RootDetectorApp" %}
@@ -15,8 +15,7 @@
     {% include 'base/scripts.html'   %}
     {% include 'roots/scripts.html'  %}
 
-    {{ base_js_templates.filetable_row_template(app)  | indent }}
-    {% include  'roots/js_templates.html' %}
+    {{ filetable_row_template(app)  | indent }}
 </head>
 
 
