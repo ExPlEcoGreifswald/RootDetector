@@ -4,6 +4,7 @@ var RootTracking = new function() {
         var $table = $('#tracking-filetable tbody')
         $table.find('tr').remove()
 
+        var n_pairs = 0
         for(var f0 of files){
             for(var f1 of files){
                 if(f0 == f1)
@@ -19,9 +20,12 @@ var RootTracking = new function() {
                     $('template#tracking-item').tmpl({filename0:f0.name, filename1:f1.name}).appendTo($table)
                     //GLOBAL.files[f0.name].tracking_results[f1.name] = {};
                     GLOBAL.files[f0.name].tracking_results = {[f1.name]: {}};  //TODO: refactor
+                    n_pairs += 1;
                 }
             }
         }
+
+        $('#tracking-filetable thead th').text(`${n_pairs} Image Pair${(n_pairs==1)?'':'s'} Loaded`)
     };
 
     this.load_result = async function(filename0, filename1, tracking_results_file, segmentation0_file, segmentation1_file){
@@ -71,7 +75,7 @@ var RootTracking = new function() {
 
             //hide all content except the loading message to avoid jerking //FIXME: jerking anyway
             $root = this;
-            $root.find('div.content').hide()
+            $root.find('div.tracking-content').hide()
             $root.find('.loading-message').show()
             
             var promise = $imgelement0.one('load', function(){
@@ -82,7 +86,7 @@ var RootTracking = new function() {
 
                 await promise;
                 $root.find('.loading-message').hide()
-                $root.find('div.content').show()
+                $root.find('div.tracking-content').show()
             });
             set_image_src($imgelement0, file0);
             set_image_src($imgelement1, file1);
@@ -97,6 +101,16 @@ var RootTracking = new function() {
 
         process_single(filename0, filename1)
     };
+
+    this.on_process_all = async function(event){
+        for(var file0 of Object.values(GLOBAL.files)){
+            if(file0.tracking_results==undefined)
+                continue
+            
+            for(var filename1 of Object.keys(file0.tracking_results))
+                await process_single(file0.name, filename1)
+        }
+    }
 
     var process_single = async function(filename0, filename1, upload_images=true, extra_data={}){
         //TODO: clear
@@ -163,6 +177,8 @@ var RootTracking = new function() {
             $chkbx1.removeClass('disabled').checkbox({onChange:()=>{
             $root.find('svg .matched-points').toggle($chkbx1.checkbox('is checked'));
         }})
+        $root.find('a.download').removeClass('disabled')
+        $root.filter('.title').find('label').css('font-weight', 'bold')
     }
 
 

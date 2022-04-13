@@ -30,10 +30,11 @@
 
 {% macro tracking_item_content() %}
 <!--------- MACRO tracking_item_content() START---------->
-<div class="content" style="display:none">
+<div class="tracking-content" style="display:none">
   {{ content_menu.content_menu(
     callback_on_process        = "RootTracking.on_process_clicked",
     callback_apply_corrections = "RootTracking.on_apply_corrections",
+    callback_download          = "RootTrackingDownload.on_single_item_download_click",
     view_menu_results_layout   = False,
     view_menu_extras           = view_menu_tracking_extras()
   ) | indent }}
@@ -54,6 +55,7 @@
   <tr class="ui title" filename0="${filename0}" filename1="${filename1}">
       <td style="width:50%;"> 
           <i class="dropdown icon"></i>
+          {# {{ base_js_templates.status_icons()         | indent(8) }} #}
           <label>${filename0}</label>
       </td>
       <td style="width:50%;">
@@ -65,8 +67,8 @@
       </td>-->
   </tr>
   
-  <tr style="display:none" filename0="${filename0}" filename1="${filename1}" filename="${filename0}">
-      <td colspan="5" class="ui content" style="padding:0px; padding-bottom:10px;">
+  <tr style="display:none" filename0="${filename0}" filename1="${filename1}" filename="${filename0}.${filename1}"> {# filename= acts as an id for this row #}
+      <td colspan="5" class="ui content" style="padding:0px;">
         {{ base_js_templates.loading_spinner() | indent(8) }}
         {{ tracking_item_content()             | indent(8) }}
       </td>
@@ -102,8 +104,11 @@
 {% macro tracking_tab() %}
 <!--------- MACRO tracking_tab() START---------->
 <div class="ui tab segment" data-tab="tracking"  style="padding:0">
-  {{ filetable_menu() }}
-  <table class="ui unstackable table accordion" id="tracking-filetable" style="border:0px; margin:0px;">
+  {{ filetable_menu(
+    callback_on_process_all     = "RootTracking.on_process_all",
+    callback_on_download_all    = "RootTrackingDownload.on_download_all"
+  ) }}
+  <table class="ui unstackable celled table accordion" id="tracking-filetable" style="border:0px; margin:0px;">
       <thead>
           <tr>
             <th colspan="2">No Image Pairs Loaded</th>

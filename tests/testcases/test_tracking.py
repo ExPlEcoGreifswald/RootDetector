@@ -1,6 +1,5 @@
-
 BaseCase = __import__('base_case').BaseCase
-import pytest, os
+import pytest, os, subprocess
 
 
 class TrackingTest(BaseCase):
@@ -39,8 +38,19 @@ class TrackingTest(BaseCase):
         #after processing is done, the dimmer should be gone (can take a while)
         self.wait_for_element_not_visible(root_css+' .dimmer', timeout=15)
 
-
         #TODO: check some indication that a file is finished processing (bold font in the file list)
+
+        #download button should not be disabled
+        assert 'disabled' not in self.get_attribute(root_css + ' a.download', 'class')
+        #download result
+        if self.is_chromium() or self.headed:
+            self.click(root_css + ' a.download')
+            #send enter key to x11 to confirm the download dialog window
+            if not self.is_chromium():  #self.is_firefox()
+                self.sleep(1.0)
+                subprocess.call('xdotool key Return', shell=True)
+
+            self.assert_downloaded_file('PD_T088_L004_17.10.18_140056_014_SS_crop.tiff.PD_T088_L004_13.11.18_091057_015_SS_crop.tiff.results.zip')
         
         if self.demo_mode:
             self.sleep(1)
