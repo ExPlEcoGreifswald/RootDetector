@@ -58,6 +58,7 @@ class App(BaseApp):
             'n_matched_points'   : result['n_matched_points'],
             'tracking_model'     : result['tracking_model'],
             'segmentation_model' : result['segmentation_model'],
+            'statistics'         : result['statistics'],
         })
 
     #override

@@ -86,9 +86,48 @@ def process(filename0, filename1, previous_data:dict=None):
     output['segmentation0']  = seg0f
     output['segmentation1']  = seg1f
 
+    output['statistics']     = compute_statistics(gmap)
+
     return output
 
 
 def run_segmentation(imgfile):
     return backend.call_with_optional_kwargs(GLOBALS.model.process_image, imgfile, threshold=None)
 
+
+#FIXME: this kind of doesnt belong here
+def skeletonized_growthmap(gmap):
+    import skimage.morphology
+    seg0w = (gmap==1) | (gmap==2)  #warped segmentation 0 = same+decay
+    seg1  = (gmap==1) | (gmap==3)  #segmentation 1        = same+growth
+    sk0   = skimage.morphology.skeletonize(seg0w)
+    sk1   = skimage.morphology.skeletonize(seg1)
+    return np.stack([
+        np.zeros_like(sk0),
+        (sk1 == 1) & (gmap == 1),
+        (sk0 == 1) & (gmap == 2),
+        (sk1 == 1) & (gmap == 3),
+    ]).argmax(0)
+
+
+def compute_statistics(turnovermap_rgba):
+    #convert rgb to labels  #FIXME: should pass a labeled map as argument
+    turnovermap = np.stack([
+        (turnovermap_rgba == ( 39, 54, 59,  0)).all(-1),
+        (turnovermap_rgba == (255,255,255,255)).all(-1),
+        (turnovermap_rgba == (226,106,116,255)).all(-1),
+        (turnovermap_rgba == ( 96,209,130,255)).all(-1),
+    ]).argmax(0)
+
+    turnovermap_sk = skeletonized_growthmap(turnovermap)
+
+    return {
+        'sum_same' :        int( (turnovermap==1).sum() ),
+        'sum_decay' :       int( (turnovermap==2).sum() ),
+        'sum_growth':       int( (turnovermap==3).sum() ),
+        'sum_negative':     int( (turnovermap==0).sum() ),
+        'sum_same_sk' :     int( (turnovermap_sk==1).sum() ),
+        'sum_decay_sk' :    int( (turnovermap_sk==2).sum() ),
+        'sum_growth_sk':    int( (turnovermap_sk==3).sum() ),
+        'sum_negative_sk':  int( (turnovermap_sk==0).sum() ),
+    }

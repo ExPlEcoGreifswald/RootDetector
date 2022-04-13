@@ -50,7 +50,12 @@ class TrackingTest(BaseCase):
                 self.sleep(1.0)
                 subprocess.call('xdotool key Return', shell=True)
 
-            self.assert_downloaded_file('PD_T088_L004_17.10.18_140056_014_SS_crop.tiff.PD_T088_L004_13.11.18_091057_015_SS_crop.tiff.results.zip')
+            fname = 'PD_T088_L004_17.10.18_140056_014_SS_crop.tiff.PD_T088_L004_13.11.18_091057_015_SS_crop.tiff.results.zip'
+            self.assert_downloaded_file(fname)
+            f = self.get_path_of_downloaded_file(fname)
+            import zipfile
+            zip = zipfile.ZipFile(f)
+            assert 'PD_T088_L004_17.10.18_140056_014_SS_crop.tiff.PD_T088_L004_13.11.18_091057_015_SS_crop.tiff.csv' in zip.namelist()
         
         if self.demo_mode:
             self.sleep(1)

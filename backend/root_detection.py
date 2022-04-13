@@ -3,8 +3,8 @@ import numpy as np
 
 import PIL.Image
 from backend import postprocessing
-from backend import GLOBALS, PubSub, write_as_png
-
+from backend import GLOBALS, write_as_png
+from base.backend.pubsub import PubSub
 
 
 

@@ -121,24 +121,6 @@ def load_image(path):
     x = x[...,:3]
     return x
 
-#TODO: remove, already upstream
-class PubSub:
-    subscribers = []
-
-    @classmethod
-    def subscribe(cls):
-        q = queue.Queue(maxsize=5)
-        cls.subscribers.append(q)
-        return q
-
-    @classmethod
-    def publish(cls, msg, event='message'):
-        for i in reversed(range(len(cls.subscribers))):
-            try:
-                cls.subscribers[i].put_nowait((event, msg))
-            except queue.Full:
-                del cls.subscribers[i]
-
 
 def call_with_optional_kwargs(func, *args, **kwargs):
     import inspect

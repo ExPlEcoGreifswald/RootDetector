@@ -30,7 +30,6 @@ RootDetectionDownload = class RootDetectionDownload extends BaseDownload{
         if(!f.results)
             return;
         
-        console.log(f)
         var stats = f.results.statistics;
         csvtxt   += [
             filename,
@@ -57,22 +56,23 @@ RootTrackingDownload = class extends BaseDownload {
         var filename1     = $root.attr('filename1')
         var tracking_data = GLOBAL.files[filename0].tracking_results[filename1];
         if(tracking_data==undefined)
-        return;
+            return;
 
         var zipdata  = {};
         zipdata[tracking_data.growthmap]     = fetch_as_blob(url_for_image(tracking_data.growthmap))
         zipdata[tracking_data.segmentation0] = fetch_as_blob(url_for_image(tracking_data.segmentation0))
         zipdata[tracking_data.segmentation1] = fetch_as_blob(url_for_image(tracking_data.segmentation1))
         var jsondata = {
-        filename0 : filename0,
-        filename1 : filename1,
-        points0   : tracking_data.points0,
-        points1   : tracking_data.points1,
-        n_matched_points   : tracking_data.n_matched_points,
-        tracking_model     : tracking_data.tracking_model,
-        segmentation_model : tracking_data.segmentation_model,
+            filename0 : filename0,
+            filename1 : filename1,
+            points0   : tracking_data.points0,
+            points1   : tracking_data.points1,
+            n_matched_points   : tracking_data.n_matched_points,
+            tracking_model     : tracking_data.tracking_model,
+            segmentation_model : tracking_data.segmentation_model,
         }
         zipdata[`${filename0}.${filename1}.json`] = JSON.stringify(jsondata);
+        zipdata[`${filename0}.${filename1}.csv`]  = this.csv_data_statistics(filename0, filename1)
         return zipdata;
     }
 
@@ -91,7 +91,34 @@ RootTrackingDownload = class extends BaseDownload {
                 Object.assign(zipdata, fzipdata)
             }
         }
-        //TODO: check if empty
+
+        if(Object.keys(zipdata).length==0)
+            return
         download_zip('results.zip', zipdata)
+    }
+
+
+    static csv_data_statistics(filename0, filename1){
+        var stats = GLOBAL.files[filename0].tracking_results[filename1].statistics;
+
+        var header = [
+            'Filename 1', 'Filename 2', 
+            '# same pixels',          '# decay pixels',          '#growth pixels',
+            '# same skeleton pixels', '# decay skeleton pixels', '#growth skeleton pixels',
+        ]
+        var data   = [
+            filename0,    filename1,    
+            stats.sum_same,    stats.sum_decay,    stats.sum_growth,
+            stats.sum_same_sk, stats.sum_decay_sk, stats.sum_growth_sk,
+        ]
+
+        //sanity check
+        if(header.length != data.length){
+            console.error('CSV data length mismatch:', header, data)
+            $('body').toast({message:'CSV data length mismatch', class:'error'})
+            return;
+        }
+
+        return [header.join(', '), data.join(', '), ''].join(';\n')
     }
 }
