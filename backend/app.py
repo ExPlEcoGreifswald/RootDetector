@@ -20,6 +20,7 @@ class App(BaseApp):
         self.settings = backend.GLOBALS.settings
 
         self.route('/process_root_tracking', methods=['GET', 'POST'])(self.process_root_tracking)
+        self.route('/postprocess_detection/<filename>')(self.postprocess_detection)
     
 
     #override
@@ -31,6 +32,17 @@ class App(BaseApp):
             flask.abort(404)
         
         result = root_detection.process_image(full_path)
+        result['segmentation'] = os.path.basename(result['segmentation'])
+        result['skeleton']     = os.path.basename(result['skeleton'])
+        return flask.jsonify(result)
+
+    def postprocess_detection(self, filename):
+        #FIXME: code duplication
+        full_path = os.path.join(self.cache_path, filename)
+        if not os.path.exists(full_path):
+            flask.abort(404)
+        
+        result = root_detection.postprocess(full_path)
         result['segmentation'] = os.path.basename(result['segmentation'])
         result['skeleton']     = os.path.basename(result['skeleton'])
         return flask.jsonify(result)
@@ -68,7 +80,7 @@ class App(BaseApp):
         if not all([os.path.exists(fname) for fname in imagefiles]):
             flask.abort(404)
         
-        targetfiles = [ f'{imgf}.segmented.png' for imgf in imagefiles ]
+        targetfiles = [ f'{imgf}.segmentation.png' for imgf in imagefiles ]
         if not all([os.path.exists(fname) for fname in targetfiles]):
             flask.abort(404)
         

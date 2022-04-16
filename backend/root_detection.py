@@ -20,6 +20,7 @@ def process_image(image_path, no_exmask=False, **kwargs):
             exmask_result = GLOBALS.exmask_model.process_image(image_path, progress_callback=progress_callback)
             segmentation_result = paste_exmask(segmentation_result, exmask_result)
     
+    #FIXME: code duplication
     skelresult   = postprocessing.skeletonize(segmentation_result)
     mask         = search_mask(image_path)
 
@@ -33,8 +34,8 @@ def process_image(image_path, no_exmask=False, **kwargs):
         skelresult_rgb   = add_mask(skelresult_rgb, mask)
 
 
-    segmentation_fname = os.path.join(output_folder, f'{basename}.segmented.png')
-    skeleton_fname     = os.path.join(output_folder, f'{basename}.skeletonized.png')
+    segmentation_fname = os.path.join(output_folder, f'{basename}.segmentation.png')
+    skeleton_fname     = os.path.join(output_folder, f'{basename}.skeleton.png')
     write_as_png(segmentation_fname, result_rgb)
     write_as_png(skeleton_fname, skelresult_rgb)
 
@@ -69,5 +70,29 @@ def add_mask(image_rgb, mask):
     masked_image  = np.where( np.any(mask, axis=-1, keepdims=True)>0, mask, image_rgb )
     return masked_image
 
+
+def postprocess(segmentation_filename):
+    #FIXME: code duplication
+
+    assert segmentation_filename.endswith('.segmentation.png')
+    segmentation = PIL.Image.open(segmentation_filename).convert('L') / np.float32(255)
+    skeleton     = postprocessing.skeletonize(segmentation)
+    mask         = None
+    #mask         = search_mask(image_path)  #TODO
+    stats        = postprocessing.compute_statistics(segmentation, skeleton, mask)
+
+    #segmentation_rgb     = result_to_rgb(segmentation)
+    skeleton_rgb         = result_to_rgb(skeleton)
+
+    #segmentation_fname = os.path.join(output_folder, f'{basename}.segmentation.png')
+    skeleton_fname     = segmentation_filename.replace('.segmentation.png', '.skeleton.png')
+    #write_as_png(segmentation_fname, result_rgb)
+    write_as_png(skeleton_fname, skeleton_rgb)
+
+    return {
+        'segmentation': segmentation_filename,
+        'skeleton'    : skeleton_fname,
+        'statistics'  : stats,
+    }
 
 

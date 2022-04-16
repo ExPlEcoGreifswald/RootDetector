@@ -30,8 +30,8 @@ class TestDownloadRootDetection(BaseCase):
         f = self.get_path_of_downloaded_file('test_image1.jpg.results.zip')
         import zipfile
         zip = zipfile.ZipFile(f)
-        assert 'test_image1.jpg.segmented.png' in zip.namelist()
-        assert 'test_image1.jpg.skeletonized.png' in zip.namelist()
+        assert 'test_image1.jpg.segmentation.png' in zip.namelist()
+        assert 'test_image1.jpg.skeleton.png' in zip.namelist()
         assert 'statistics.csv' in zip.namelist()
 
         #TODO: more checks: csv format & values, segmentation etc
