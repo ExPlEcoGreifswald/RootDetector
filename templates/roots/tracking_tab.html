@@ -27,6 +27,20 @@
 {% endmacro %}
 
 
+{% macro tracking_help() %}
+<div class="ui segment flowing popup">
+  <ul class="ui list">
+    <li><b>SHIFT + Drag</b> to move the image</li>
+    <li><b>SHIFT + Mouse wheel</b> to zoom</li>
+    <li><b>SHIFT + Double-click</b> to reset</li>
+    <li><b>CTRL + Click</b> in both images to add a manual correction point</li>
+    <li><b>CTRL + Drag</b> within the right image from <span class="ui red text">red</span> to <span class="ui green text">green</span> to add a manual correction point</li>
+    <li><b>CTRL + Click</b> on a highlighted <span class="ui teal text">cyan</span> point to remove it</li>
+  </ul>
+</div>
+<script>$('.help-menu-button').last().popup({hoverable:false});</script>
+{% endmacro %}
+
 
 {% macro tracking_item_content() %}
 <!--------- MACRO tracking_item_content() START---------->
@@ -36,7 +50,8 @@
     callback_apply_corrections = "RootTracking.on_apply_corrections",
     callback_download          = "RootTrackingDownload.on_single_item_download_click",
     view_menu_results_layout   = False,
-    view_menu_extras           = view_menu_tracking_extras()
+    view_menu_extras           = view_menu_tracking_extras(),
+    help_popup                 = tracking_help()
   ) | indent }}
 
   <div class="image-container">
@@ -125,28 +140,4 @@
 {{ tracking_item_template() }}
 <!--------- MACRO tracking_tab() END---------->
 {% endmacro %}
-
-
-
-
-
-{#
-    
-  TODO
-
-              <a class="item help-menu-button"><i class="help icon"></i></a>
-              <div class="ui segment flowing popup">
-                <ul class="ui list">
-                  <li><b>SHIFT + Drag</b> to move the image</li>
-                  <li><b>SHIFT + Mouse wheel</b> to zoom</li>
-                  <li><b>SHIFT + Double-click</b> to reset</li>
-                  <li><b>CTRL + Click</b> in both images to add a manual correction point</li>
-                  <li><b>CTRL + Drag</b> within the right image from <span class="ui red text">red</span> to <span class="ui green text">green</span> to add a manual correction point</li>
-                  <li><b>CTRL + Click</b> on a highlighted <span class="ui teal text">cyan</span> point to remove it</li>
-                </ul>
-              </div>
-              <script>$('.help-menu-button').last().popup({hoverable:false});</script>
-            
-    
-#}
 
