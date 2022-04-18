@@ -6,7 +6,7 @@ from base.backend import pubsub
 def start_training(imagefiles, targetfiles):
     #TODO: lock.acquire(blocking=False)
     model = backend.GLOBALS.model
-    model.fit(imagefiles, targetfiles, epochs=10, num_workers=0, callback=training_progress_callback)
+    model.start_training(imagefiles, targetfiles, epochs=10, num_workers=0, callback=training_progress_callback)
     backend.GLOBALS.model                 = model
     backend.GLOBALS.settings.active_model = ''
 
