@@ -61,7 +61,7 @@ def paste_exmask(segmask, exmask):
 def search_mask(input_image_path):
     '''Looks for a file with prefix "mask_" in the same directory as input_image_path'''
     basename = os.path.splitext(os.path.basename(input_image_path))[0]
-    pattern  = os.path.join( os.path.dirname(input_image_path), 'mask_'+basename+'*.png' )
+    pattern  = os.path.join( os.path.dirname(input_image_path), f'{basename}.excludemask.png')
     masks    = glob.glob(pattern)
     if len(masks)==1:
         return PIL.Image.open(masks[0]).convert('RGB') / np.float32(255)
