@@ -9,31 +9,31 @@ RootsSettings = class extends BaseSettings{
         const settings = GLOBAL.settings;
         
         var models_list = []
-        for(var modelname of models.models)
-            models_list.push({name:modelname, value:modelname, selected:(modelname==settings.active_model)})
-        if(settings.active_model=='')
+        for(var modelname of models.detection)
+            models_list.push({name:modelname, value:modelname, selected:(modelname==settings.active_models.detection)})
+        if(settings.active_models.detection=='')
             models_list.push({name:'[UNSAVED MODEL]', value:'', selected:true})
         $("#settings-active-model").dropdown({values: models_list, showOnFocus:false })
 
 
         $('#settings-exclusionmask-enable').checkbox(settings.exmask_enabled? 'check' : 'uncheck');
         var exmaskmodels_list = []
-        for(var name of models.exmask_models)
-            exmaskmodels_list.push({name:name, value:name, selected:(name==settings.exmask_active_model)})
+        for(var name of models.exclusion_mask)
+            exmaskmodels_list.push({name:name, value:name, selected:(name==settings.active_models.exclusion_mask)})
         $("#settings-exclusionmask-model").dropdown({values: exmaskmodels_list, showOnFocus:false })
 
         var trackingmodels_list = []
-        for(var name of models.tracking_models)
-            trackingmodels_list.push({name:name, value:name, selected:(name==settings.tracking_active_model)})
+        for(var name of models.tracking)
+            trackingmodels_list.push({name:name, value:name, selected:(name==settings.active_models.tracking)})
         $("#settings-tracking-model").dropdown({values: trackingmodels_list, showOnFocus:false })
     }
 
 
     //override
     static apply_settings_from_modal(){
-        GLOBAL.settings.active_model          = $("#settings-active-model").dropdown('get value');
-        GLOBAL.settings.exmask_active_model   = $("#settings-exclusionmask-model").dropdown('get value');
-        GLOBAL.settings.tracking_active_model = $("#settings-tracking-model").dropdown('get value');
+        GLOBAL.settings.active_models['detection']      = $("#settings-active-model").dropdown('get value');
+        GLOBAL.settings.active_models['exclusion_mask'] = $("#settings-exclusionmask-model").dropdown('get value');
+        GLOBAL.settings.active_models['tracking']       = $("#settings-tracking-model").dropdown('get value');
     }
 
     static on_exmask_checkbox(){

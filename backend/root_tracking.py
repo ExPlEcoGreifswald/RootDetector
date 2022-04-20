@@ -15,7 +15,8 @@ def process(filename0, filename1, previous_data:dict=None):
     print(f'Performing root tracking on files {filename0} and {filename1}')
     #modelfile  = os.path.join('models/root_tracking_models', GLOBALS.settings.tracking_active_model+'.cpkl')
     #cloudpickle.load(open(modelfile, 'rb'))
-    matchmodel = backend.load_tracking_model(GLOBALS.settings.tracking_active_model)
+    #matchmodel = backend.load_tracking_model(GLOBALS.settings.tracking_active_model)
+    matchmodel = GLOBALS.settings.models['tracking']
 
     seg0f = f'{filename0}.segmentation.png'
     seg1f = f'{filename1}.segmentation.png'
@@ -43,8 +44,8 @@ def process(filename0, filename1, previous_data:dict=None):
             print()
             output['success'] = success = (len(output['points0'])>=16)
             output['n_matched_points'] = len(output['points0'])
-            output['tracking_model']     = GLOBALS.settings.tracking_active_model
-            output['segmentation_model'] = GLOBALS.settings.active_model
+            output['tracking_model']     = GLOBALS.settings.active_models['tracking']
+            output['segmentation_model'] = GLOBALS.settings.active_models['detection']
     else:
         output      = {
             'points0'            : np.asarray(previous_data['points0']).reshape(-1,2),
@@ -92,7 +93,8 @@ def process(filename0, filename1, previous_data:dict=None):
 
 
 def run_segmentation(imgfile):
-    return backend.call_with_optional_kwargs(GLOBALS.model.process_image, imgfile, threshold=None)
+    segmentation_model = GLOBALS.settings.models['detection']
+    return backend.call_with_optional_kwargs(segmentation_model.process_image, imgfile, threshold=None)
 
 
 #FIXME: this kind of doesnt belong here

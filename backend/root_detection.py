@@ -14,10 +14,12 @@ def process_image(image_path, no_exmask=False, **kwargs):
     output_folder = os.path.dirname(image_path)
     with GLOBALS.processing_lock:
         progress_callback=lambda x: PubSub.publish({'progress':x, 'image':os.path.basename(image_path), 'stage':'roots'})
-        segmentation_result = GLOBALS.model.process_image(image_path, progress_callback=progress_callback)
+        segmentation_model  = GLOBALS.settings.models['detection']
+        segmentation_result = segmentation_model.process_image(image_path, progress_callback=progress_callback)
         if GLOBALS.settings.exmask_enabled and not no_exmask:
             progress_callback=lambda x: PubSub.publish({'progress':x, 'image':os.path.basename(image_path), 'stage':'mask'})
-            exmask_result = GLOBALS.exmask_model.process_image(image_path, progress_callback=progress_callback)
+            exmask_model  = GLOBALS.settings.models['exclusion_mask']
+            exmask_result = exmask_model.process_image(image_path, progress_callback=progress_callback)
             segmentation_result = paste_exmask(segmentation_result, exmask_result)
     
     #FIXME: code duplication

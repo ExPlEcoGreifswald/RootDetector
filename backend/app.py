@@ -16,8 +16,7 @@ class App(BaseApp):
         if self.is_reloader:
             return
         
-        backend.init(self.root_path)
-        self.settings = backend.GLOBALS.settings
+        backend.init(self.settings)
 
         self.route('/process_root_tracking', methods=['GET', 'POST'])(self.process_root_tracking)
         self.route('/postprocess_detection/<filename>')(self.postprocess_detection)
@@ -87,10 +86,3 @@ class App(BaseApp):
         backend.training.start_training(imagefiles, targetfiles)
         return 'OK'
     
-    #override
-    def save_model(self):
-        newname = flask.request.args['newname']
-        backend.training.save_model(newname)
-        print('New model training model saved as:',newname)
-        return 'OK'
-

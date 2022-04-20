@@ -23,7 +23,7 @@ class TrackingTest(BaseCase):
         #set the right models                      #FIXME: this is very brittle
         self.click("#settings-button")                                              
         self.click("div#settings-active-model")                                          
-        self.click("div#settings-active-model div>:contains('2022-01-11_022_segmentation.full')")    
+        self.click("div#settings-active-model div>:contains('2022-04-19_028a_WM')")    
         self.click("div#settings-tracking-model")                                        
         self.click("div#settings-tracking-model div>:contains('2022-01-10_022_roottracking.stage2')")  
         self.click("div#settings-ok-button i")

@@ -15,9 +15,9 @@ class GLOBALS:
     processing_lock        = threading.RLock()
 
 
-def init(root_path):
-    GLOBALS.root_path = os.path.normpath(root_path)
-    GLOBALS.settings  = Settings()
+def init(settings):
+    #TODO: remove this function
+    GLOBALS.settings  = settings
 
 
 
