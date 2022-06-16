@@ -88,8 +88,8 @@ var RootTracking = new function() {
                 $root.find('.loading-message').hide()
                 $root.find('div.tracking-content').show()
             });
-            set_image_src($imgelement0, file0);
-            set_image_src($imgelement1, file1);
+            GLOBAL.App.ImageLoading.set_image_src($imgelement0, file0);
+            GLOBAL.App.ImageLoading.set_image_src($imgelement1, file1);
         }
     };
 

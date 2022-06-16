@@ -3,23 +3,37 @@
 RootsFileInput = class extends BaseFileInput{
     //override
     static refresh_filetable(files){
-        BaseFileInput.refresh_filetable(files)
+        const promise = BaseFileInput.refresh_filetable(files)
         RootTracking.set_input_files(files)
+        return promise
     }
 
+    //override
+    static match_resultfile_to_inputfile(inputfilename, resultfilename){
+        var basename          = file_basename(resultfilename)
+        const no_ext_filename = remove_file_extension(inputfilename)
+        const candidate_names = [
+            inputfilename  +'.segmentation.png',
+            no_ext_filename+'.segmentation.png',
+            no_ext_filename+'.png',
+        ]
+        return (candidate_names.indexOf(basename) != -1)
+    }
 
     //override
-    static async load_result(filename, file){
+    static async load_result(filename, resultfiles){
+        console.log(filename, resultfiles)
         const inputfile = GLOBAL.files[filename]
         if(inputfile != undefined){
-            const blob   = await(file.async? file.async('blob') : file)
-            file         = new File([blob], `${filename}.segmentation.png`, {type:'image/png'})
+            const resultfile = new File(
+                //consistent file name
+                [resultfiles[0]], `${filename}.segmentation.png`, {type:'image/png'}
+            )
 
             //upload to flask & postprocess
-            await upload_file_to_flask(file)
-            const result = await $.get(`/postprocess_detection/${file.name}`)
-            //const result = {segmentation: file}  //TODO replace string with file
-            App.Detection.set_results(filename, result)
+            await upload_file_to_flask(resultfile)
+            const result = await $.get(`/postprocess_detection/${resultfile.name}`)
+            await App.Detection.set_results(filename, result)
         }
     }
 

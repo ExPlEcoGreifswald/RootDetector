@@ -9,7 +9,7 @@
 
 
 {% macro roots_filetable_content(app)%}
-    {{ base_js_templates.filetable_content(app, view_menu_extras=skeleton_checkbox()) }}
+    {{ base_js_templates.filetable_content(app, view_menu_kwargs={'extras':skeleton_checkbox()} ) }}
 {% endmacro %}
 
 

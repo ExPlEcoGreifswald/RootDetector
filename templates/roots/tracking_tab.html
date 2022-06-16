@@ -42,6 +42,11 @@
 {% endmacro %}
 
 
+{% macro tracking_overlays(name) %}
+  {{ base_js_templates.image_overlay(name) }}
+  {{ svg_overlay(name) }}
+{% endmacro %}
+
 {% macro tracking_item_content() %}
 <!--------- MACRO tracking_item_content() START---------->
 <div class="tracking-content" style="display:none">
@@ -49,14 +54,13 @@
     callback_on_process        = "RootTracking.on_process_clicked",
     callback_apply_corrections = "RootTracking.on_apply_corrections",
     callback_download          = "RootTrackingDownload.on_single_item_download_click",
-    view_menu_results_layout   = False,
-    view_menu_extras           = view_menu_tracking_extras(),
+    view_menu_kwargs           = {'show_results_layout':False, 'extras':view_menu_tracking_extras()},
     help_popup                 = tracking_help()
   ) | indent }}
 
   <div class="image-container">
-    {{ base_js_templates.content_image(name="left input",  overlay=True, viewcontrols="TrackingViewControls", extras=svg_overlay(name="left"))  | indent(8) }}
-    {{ base_js_templates.content_image(name="right input", overlay=True, viewcontrols="TrackingViewControls", extras=svg_overlay(name="right")) | indent(8) }}
+    {{ base_js_templates.content_image(name="left input",  overlay=tracking_overlays(name="left"), viewcontrols="TrackingViewControls")  | indent(8) }}
+    {{ base_js_templates.content_image(name="right input", overlay=tracking_overlays(name="right"), viewcontrols="TrackingViewControls") | indent(8) }}
     {{ base_js_templates.progress_dimmer() }}
   </div>
 </div>

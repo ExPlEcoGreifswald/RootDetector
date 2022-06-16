@@ -22,9 +22,9 @@ RootDetection = class extends BaseDetection{
         var src      = checked? GLOBAL.files[filename].results.skeleton : GLOBAL.files[filename].results.segmentation;
 
         var $result_image   = $root.find('img.result-image')
-        set_image_src($result_image, src)
+        GLOBAL.App.ImageLoading.set_image_src($result_image, src)
         var $result_overlay = $root.find(`img.overlay`)
-        set_image_src($result_overlay, src)
+        GLOBAL.App.ImageLoading.set_image_src($result_overlay, src)
     }
 }
 
