@@ -5,13 +5,13 @@ import PIL.Image
 from backend import postprocessing
 from backend import GLOBALS, write_as_png
 from base.backend.pubsub import PubSub
-
+from base.backend.app import get_cache_path
 
 
 
 def process_image(image_path, no_exmask=False, **kwargs):
     basename      = os.path.basename(image_path)
-    output_folder = os.path.dirname(image_path)
+    output_folder = get_cache_path()
     with GLOBALS.processing_lock:
         progress_callback=lambda x: PubSub.publish({'progress':x, 'image':os.path.basename(image_path), 'stage':'roots'})
         segmentation_model  = GLOBALS.settings.models['detection']

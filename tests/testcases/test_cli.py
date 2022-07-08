@@ -1,6 +1,6 @@
 import backend.cli
 
-import zipfile, tempfile, os
+import zipfile, tempfile, os, pathlib
 import PIL.Image
 import numpy as np
 
@@ -55,9 +55,44 @@ def test_associate_predictions_to_annotations_zipped():
     assert len(pairs) == 1
     assert os.path.exists(pairs[0][0]), 'failed to unzip'
 
+def test_write_processing_results():
+    tmpdir = tempfile.TemporaryDirectory()
+    mockresults = [{
+        'filename' : 'path/to/AAA.tiff',
+        'result': {
+            'segmentation': f'{tmpdir.name}/AAA.tiff.segmentation.png',
+            'skeleton':     f'{tmpdir.name}/AAA.tiff.skeleton.png',
+        }
+    }]
+    PIL.Image.fromarray(np.ones([100,100,3], 'uint8')).save( mockresults[0]['result']['segmentation'] )
+    PIL.Image.fromarray(np.ones([100,100,3], 'uint8')).save( mockresults[0]['result']['skeleton'] )
+
+    class mockargs:
+        output = pathlib.Path(tmpdir.name+'/results')
+    backend.cli.CLI.write_results(mockresults, mockargs)
+
+    assert os.path.exists(tmpdir.name+'/results.zip')
+    with zipfile.ZipFile(tmpdir.name+'/results.zip', 'r') as archive:
+        contents = archive.namelist()
+        assert 'AAA.tiff/AAA.tiff.segmentation.png' in contents
+        assert 'AAA.tiff/AAA.tiff.skeleton.png'     in contents
 
 
 
+
+def test_reformat_outputfilename():
+    tmpdir = tempfile.TemporaryDirectory()
+
+    x = backend.cli.reformat_outputfilename(tmpdir.name+'/file')
+    assert x == tmpdir.name+'/file.zip'
+
+    x = backend.cli.reformat_outputfilename(x)
+    assert x == tmpdir.name+'/file.zip'
+
+    open(x, 'w').write('banana')
+
+    x = backend.cli.reformat_outputfilename(x)
+    assert x == tmpdir.name+'/file(2).zip'
 
 
 

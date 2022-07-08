@@ -1,7 +1,7 @@
 import base.backend.cli as base_cli
 
-import os, argparse, glob, pathlib, zipfile
-from . import settings
+import os, argparse, glob, pathlib, zipfile, sys
+import backend.settings
 from . import evaluation
 from base.backend.app import get_cache_path
 
@@ -19,25 +19,30 @@ class CLI(base_cli.CLI):
         group.add_argument('--evaluate', action='store_true')
         group.add_argument('--process',  action='store_true')
 
+        group = parser.add_mutually_exclusive_group(required=False)
+        group.add_argument('--exclusionmask', action='store_true')
+        group.add_argument('--no-exclusionmask', action='store_false')
+
         group = parser.add_argument_group('evaluation arguments')
-        group.add_argument('--annotations', default=None, type=pathlib.Path)
-        group.add_argument('--predictions', default=None, type=pathlib.Path)
+        group.add_argument('--annotations', default=None, type=pathlib.Path,
+                            help=f'Path to annotation files (e.g. --annotations=path/to/*.png)')
+        group.add_argument('--predictions', default=None, type=pathlib.Path,
+                            help=f'Path to result files (e.g. --predictions=path/to/results.zip)')
         return parser
 
     #override
     @classmethod
     def process_cli_args(cls, args):
         if args.evaluate:
-            return cls.process_evaluate(args)
+            return cls.evaluate(args)
         elif args.process:
-            print('processing', args)
-            raise NotImplementedError()
+            return cls.process(args)
         else:
             raise NotImplementedError()
         return True
 
     @staticmethod
-    def process_evaluate(args):
+    def evaluate(args):
         if args.annotations is None or args.predictions is None:
             print('[ERROR] Please specify --annotations and --predictions')
             return 1
@@ -48,11 +53,57 @@ class CLI(base_cli.CLI):
         
         print(f'Found {len(file_pairs)} result files and annotations.')
         evresults = [evaluation.evaluate_single_file(*pair) for pair in file_pairs]
-        output    = args.output.as_posix()
-        output   += ('.zip' if not output.endswith('.zip') else '')
+        output    = reformat_outputfilename(args.output.as_posix())
         evaluation.save_evaluation_results(evresults, output)
         print(f'Output written to {output}')
 
+    @classmethod
+    def process(cls, args):
+        if args.input is None:
+            print('[ERROR] Please specify --input')
+            return 1
+        
+        #FIXME: code duplication with upstream
+        inputfiles = sorted(glob.glob(args.input.as_posix(), recursive=True))
+        if len(inputfiles) == 0:
+            print('Could not find any files')
+            return
+
+        if args.model:
+            raise NotImplementedError('TODO')
+        if args.exclusionmask or args.no_exclusionmask==False:
+            raise NotImplementedError('TODO')
+
+        print(f'Processing {len(inputfiles)} files')
+        results = []
+        import backend.root_detection
+        settings = backend.settings.Settings()
+        backend.init(settings)
+        for i,f in enumerate(inputfiles):
+            print(f'[{i:4d} / {len(inputfiles)}] {f}')
+            try:
+                result       = backend.root_detection.process_image(f)
+            except Exception as e:
+                print(f'[ERROR] {e}', file=sys.stderr)
+                continue
+            results += [{'filename':f, 'result':result}]
+        
+        if len(results)==0:
+            print(f'[ERROR] Unable to process any file', file=sys.stderr)
+            return
+        
+        cls.write_results(results, args)
+
+    @staticmethod
+    def write_results(results, args):
+        outputfile  = reformat_outputfilename(args.output.as_posix())
+        with zipfile.ZipFile(outputfile, 'w') as archive:
+            for r in results:
+                filename = os.path.basename(r['filename'])
+                r        = r['result']
+                archive.open(f'{filename}/{filename}.segmentation.png', 'w').write(open(r['segmentation'], 'rb').read())
+                archive.open(f'{filename}/{filename}.skeleton.png', 'w').write(open(r['skeleton'], 'rb').read())
+        print(f'Results written to {outputfile}.')
 
     #override
     @classmethod
@@ -65,7 +116,12 @@ class CLI(base_cli.CLI):
             return False
 
 
-
+def reformat_outputfilename(filename:str) -> str:
+    filename += ('.zip' if not filename.endswith('.zip') else '')
+    if os.path.exists(filename):
+        split    = os.path.splitext(filename)
+        filename = f'{split[0]}(2){split[1]}'
+    return filename
 
 
 def associate_predictions_to_annotations(predictionfiles:list, annotationfiles:list) -> tuple:
