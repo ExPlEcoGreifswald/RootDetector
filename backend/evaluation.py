@@ -6,8 +6,10 @@ import zipfile, os, io
 
 def evaluate_single_file(predictionfile:str, annotationfile:str) -> dict:
     #print('Evaluating ', predictionfile, annotationfile)
-    ypred = PIL.Image.open(predictionfile).convert('L') > np.float32(0.5)   #TODO:colors!
-    ytrue = PIL.Image.open(annotationfile).convert('L') > np.float32(0.5)
+    #ypred = PIL.Image.open(predictionfile).convert('L') > np.float32(0.5)   #TODO:colors!
+    #ytrue = PIL.Image.open(annotationfile).convert('L') > np.float32(0.5)
+    ypred = load_segmentationfile(predictionfile)
+    ytrue = load_segmentationfile(annotationfile)
 
     result = {
         'IoU'                : IoU(ytrue, ypred),
@@ -17,6 +19,10 @@ def evaluate_single_file(predictionfile:str, annotationfile:str) -> dict:
     }
     result.update(precision_recall(ytrue, ypred))
     return result
+
+def load_segmentationfile(filename:str) -> np.array:
+    image = PIL.Image.open(filename).convert('RGB') * np.uint8(1)
+    return np.all(image == (255, 255, 255), axis=-1)
 
 def save_evaluation_results(results:list, destination:str):
     csv_text = results_to_csv(results)

@@ -35,8 +35,25 @@ def test_evaluate_single():
         assert 'AAA.tiff/error_map.png' in contents
 
 
-#TODO
-#def test_evaluate_with_exclusionmask
+
+def test_evaluate_with_exclusionmask():
+    ytrue = np.zeros([100,100,3], 'uint8')
+    ytrue[:,:50] = 255
+    ypred = np.zeros([100,100,3], 'uint8')
+    ypred[:50]   = 255
+
+    #exclusion mask
+    ytrue[:,:25] = (255, 0, 0)
+    ypred[:25]   = (255, 0, 0)
+
+    tmpdir    = tempfile.TemporaryDirectory()
+    ytrue_png = os.path.join(tmpdir.name, 'AAA.png')
+    ypred_png = os.path.join(tmpdir.name, 'AAA.tiff.segmentation.png')
+    PIL.Image.fromarray(ytrue).save(ytrue_png)
+    PIL.Image.fromarray(ypred).save(ypred_png)
+
+    evresult = backend.evaluation.evaluate_single_file(ypred_png, ytrue_png)
+    assert np.allclose(evresult['IoU'], 625 / 4375)
 
 
 

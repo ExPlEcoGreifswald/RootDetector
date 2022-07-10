@@ -1,3 +1,9 @@
+#needed for upstream
+from base.backend import *
+from . import root_detection as processing
+
+
+
 import threading, os
 import PIL.Image
 import numpy as np
@@ -5,19 +11,19 @@ import numpy as np
 from .settings import Settings
 
 
-class GLOBALS:
-    settings:'Settings'    = None  #see below
-    root_path:str          = ''
+# class GLOBALS:
+#     settings:'Settings'    = None  #see below
+#     root_path:str          = ''
 
-    model:object           = None  #pre-loaded detection model
-    exmask_model:object    = None  #pre-loaded exclusion mask model
+#     model:object           = None  #pre-loaded detection model
+#     exmask_model:object    = None  #pre-loaded exclusion mask model
 
-    processing_lock        = threading.RLock()
+#     processing_lock        = threading.RLock()
 
 
-def init(settings):
-    #TODO: remove this function
-    GLOBALS.settings  = settings
+# def init(settings):
+#     #TODO: remove this function
+#     GLOBALS.settings  = settings
 
 
 

@@ -3,7 +3,7 @@ import base.backend.cli as base_cli
 import os, argparse, glob, pathlib, zipfile, sys
 import backend.settings
 from . import evaluation
-from base.backend.app import get_cache_path
+from base.backend.app import get_cache_path, setup_cache
 
 
 class CLI(base_cli.CLI):
@@ -47,6 +47,7 @@ class CLI(base_cli.CLI):
             print('[ERROR] Please specify --annotations and --predictions')
             return 1
         
+        setup_cache(get_cache_path())
         annotationfiles = sorted(glob.glob(args.annotations.as_posix(), recursive=True))
         predictionfiles = sorted(glob.glob(args.predictions.as_posix(), recursive=True))
         file_pairs = associate_predictions_to_annotations(predictionfiles, annotationfiles)
@@ -78,11 +79,12 @@ class CLI(base_cli.CLI):
         results = []
         import backend.root_detection
         settings = backend.settings.Settings()
-        backend.init(settings)
+        setup_cache(get_cache_path())
+        
         for i,f in enumerate(inputfiles):
             print(f'[{i:4d} / {len(inputfiles)}] {f}')
             try:
-                result       = backend.root_detection.process_image(f)
+                result       = backend.root_detection.process_image(f, settings)
             except Exception as e:
                 print(f'[ERROR] {e}', file=sys.stderr)
                 continue
@@ -97,12 +99,35 @@ class CLI(base_cli.CLI):
     @staticmethod
     def write_results(results, args):
         outputfile  = reformat_outputfilename(args.output.as_posix())
+        all_stats   = []
+        csv_header = [
+            'Filename', '# root pixels', '# background pixels', '# mask pixels', '# skeleton pixels', 
+            '# skeleton pixels (<3px width)', '# skeleton pixels (3-7px width)', '# skeleton pixels (>7px width)',
+            'Kimura length'
+        ]
+
         with zipfile.ZipFile(outputfile, 'w') as archive:
+            all_csv_data = []
             for r in results:
                 filename = os.path.basename(r['filename'])
                 r        = r['result']
-                archive.open(f'{filename}/{filename}.segmentation.png', 'w').write(open(r['segmentation'], 'rb').read())
-                archive.open(f'{filename}/{filename}.skeleton.png', 'w').write(open(r['skeleton'], 'rb').read())
+                png_seg  = open(get_cache_path(r['segmentation']), 'rb').read()
+                png_skel = open(get_cache_path(r['skeleton']), 'rb').read()
+                archive.open(f'{filename}/{filename}.segmentation.png', 'w').write(png_seg)
+                archive.open(f'{filename}/{filename}.skeleton.png', 'w').write(png_skel)
+                all_stats.append(r['statistics'])
+
+                keys = ['sum', 'sum_negative', 'sum_mask', 'sum_skeleton']
+                csv_data = (
+                      [filename] 
+                    + [r['statistics'][k] for k in keys]
+                    +  r['statistics']['widths'] 
+                    + [r['statistics']['kimura_length']] 
+                )
+                assert len(csv_data) == len(csv_header), [len(csv_data) , len(csv_header)]
+                all_csv_data += [[str(x) for x in csv_data]]
+            csv_text = '\n'.join([', '.join(line) for line in [csv_header]+all_csv_data])
+            archive.writestr('statistics.csv', csv_text)
         print(f'Results written to {outputfile}.')
 
     #override
@@ -153,7 +178,7 @@ def associate_predictions_to_annotations(predictionfiles:list, annotationfiles:l
             archive_namelist = archive.namelist()
             for i, (pred,ann) in enumerate(pairs):
                 if pred in archive_namelist:
-                    destination = os.path.join(get_cache_path(), os.path.basename(pred))
+                    destination = get_cache_path(os.path.basename(pred))
                     open(destination, 'wb').write( archive.open(pred).read() )
                     pairs[i] = (destination, ann)
     

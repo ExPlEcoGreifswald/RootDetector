@@ -3,22 +3,22 @@ import numpy as np
 
 import PIL.Image
 from backend import postprocessing
-from backend import GLOBALS, write_as_png
+import backend
 from base.backend.pubsub import PubSub
 from base.backend.app import get_cache_path
 
 
 
-def process_image(image_path, no_exmask=False, **kwargs):
+def process_image(image_path, settings,  no_exmask=False, **kwargs):
     basename      = os.path.basename(image_path)
     output_folder = get_cache_path()
-    with GLOBALS.processing_lock:
-        progress_callback=lambda x: PubSub.publish({'progress':x, 'image':os.path.basename(image_path), 'stage':'roots'})
-        segmentation_model  = GLOBALS.settings.models['detection']
+    with backend.GLOBALS.processing_lock:
+        progress_callback   = lambda x: PubSub.publish({'progress':x, 'image':os.path.basename(image_path), 'stage':'roots'})
+        segmentation_model  = settings.models['detection']
         segmentation_result = segmentation_model.process_image(image_path, progress_callback=progress_callback)
-        if GLOBALS.settings.exmask_enabled and not no_exmask:
-            progress_callback=lambda x: PubSub.publish({'progress':x, 'image':os.path.basename(image_path), 'stage':'mask'})
-            exmask_model  = GLOBALS.settings.models['exclusion_mask']
+        if settings.exmask_enabled and not no_exmask:
+            progress_callback = lambda x: PubSub.publish({'progress':x, 'image':os.path.basename(image_path), 'stage':'mask'})
+            exmask_model  = settings.models['exclusion_mask']
             exmask_result = exmask_model.process_image(image_path, progress_callback=progress_callback)
             segmentation_result = paste_exmask(segmentation_result, exmask_result)
     
@@ -36,10 +36,12 @@ def process_image(image_path, no_exmask=False, **kwargs):
         skelresult_rgb   = add_mask(skelresult_rgb, mask)
 
 
-    segmentation_fname = os.path.join(output_folder, f'{basename}.segmentation.png')
-    skeleton_fname     = os.path.join(output_folder, f'{basename}.skeleton.png')
-    write_as_png(segmentation_fname, result_rgb)
-    write_as_png(skeleton_fname, skelresult_rgb)
+    segmentation_fname = f'{basename}.segmentation.png'
+    segmentation_path  = os.path.join(output_folder, segmentation_fname)
+    skeleton_fname     = f'{basename}.skeleton.png'
+    skeleton_path      = os.path.join(output_folder, skeleton_fname)
+    backend.write_as_png(segmentation_path, result_rgb)
+    backend.write_as_png(skeleton_path, skelresult_rgb)
 
     return {
         'segmentation': segmentation_fname,

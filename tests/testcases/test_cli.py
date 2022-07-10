@@ -62,6 +62,14 @@ def test_write_processing_results():
         'result': {
             'segmentation': f'{tmpdir.name}/AAA.tiff.segmentation.png',
             'skeleton':     f'{tmpdir.name}/AAA.tiff.skeleton.png',
+            'statistics': {
+                'sum':           262183,
+                'sum_mask':      736114,
+                'sum_negative':  4797853,
+                'sum_skeleton':  56863,
+                'kimura_length': 62536,
+                'widths':        [43034, 11858, 1971],
+            }
         }
     }]
     PIL.Image.fromarray(np.ones([100,100,3], 'uint8')).save( mockresults[0]['result']['segmentation'] )
@@ -76,6 +84,7 @@ def test_write_processing_results():
         contents = archive.namelist()
         assert 'AAA.tiff/AAA.tiff.segmentation.png' in contents
         assert 'AAA.tiff/AAA.tiff.skeleton.png'     in contents
+        assert 'statistics.csv'                     in contents
 
 
 

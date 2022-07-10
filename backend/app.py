@@ -15,25 +15,9 @@ class App(BaseApp):
         super().__init__(*args, **kw)
         if self.is_reloader:
             return
-        
-        backend.init(self.settings)
 
         self.route('/process_root_tracking', methods=['GET', 'POST'])(self.process_root_tracking)
         self.route('/postprocess_detection/<filename>')(self.postprocess_detection)
-    
-
-    #override
-    def process_image(self, imagename):
-        print('Processing image:', imagename)
-        #FIXME: code duplication with upstream
-        full_path = os.path.join(self.cache_path, imagename)
-        if not os.path.exists(full_path):
-            flask.abort(404)
-        
-        result = root_detection.process_image(full_path)
-        result['segmentation'] = os.path.basename(result['segmentation'])
-        result['skeleton']     = os.path.basename(result['skeleton'])
-        return flask.jsonify(result)
 
     def postprocess_detection(self, filename):
         #FIXME: code duplication
