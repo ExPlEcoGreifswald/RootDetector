@@ -91,7 +91,7 @@ def postprocess(segmentation_filename):
     #segmentation_fname = os.path.join(output_folder, f'{basename}.segmentation.png')
     skeleton_fname     = segmentation_filename.replace('.segmentation.png', '.skeleton.png')
     #write_as_png(segmentation_fname, result_rgb)
-    write_as_png(skeleton_fname, skeleton_rgb)
+    backend.write_as_png(skeleton_fname, skeleton_rgb)
 
     return {
         'segmentation': segmentation_filename,

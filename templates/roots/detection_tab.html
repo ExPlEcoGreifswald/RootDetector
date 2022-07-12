@@ -1,4 +1,5 @@
 {% import   'base/js_templates.html'  as base_js_templates %}
+{% import   'base/content_menu.html'  as base_content_menu %}
 
 {% macro skeleton_checkbox() %}
 <div class="ui item disabled checkbox skeletonized-checkbox">
@@ -8,8 +9,29 @@
 {% endmacro %}
 
 
+
 {% macro roots_filetable_content(app)%}
-    {{ base_js_templates.filetable_content(app, view_menu_kwargs={'extras':skeleton_checkbox()} ) }}
+<div class="filetable-content" style="display:none">
+    {{ base_content_menu.content_menu(
+            callback_on_process        = app+".Detection.on_process_image",
+            callback_apply_corrections = None,
+            callback_new_box           = None,
+            callback_download          = app+".Download.on_single_item_download_click",
+            edit_segmentation_item     = None,
+            view_menu_kwargs           = {
+                'extras': skeleton_checkbox()
+            }
+    ) | indent }}
+
+    <div class="image-container">
+        {{ base_js_templates.content_image(
+            name           = "input",  
+            overlay        = base_js_templates.image_and_boxes_overlay("input"),
+            viewcontrols   = app+".ViewControls"
+          ) | indent(8) }}
+        {{ base_js_templates.progress_dimmer() }}
+    </div>
+</div>
 {% endmacro %}
 
 

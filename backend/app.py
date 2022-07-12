@@ -35,12 +35,12 @@ class App(BaseApp):
         if flask.request.method=='GET':
             fname0 = os.path.join(self.cache_path, flask.request.args['filename0'])
             fname1 = os.path.join(self.cache_path, flask.request.args['filename1'])
-            result = root_tracking.process(fname0, fname1)
+            result = root_tracking.process(fname0, fname1, self.settings)
         elif flask.request.method=='POST':
             data   = flask.request.get_json(force=True)
             fname0 = os.path.join(self.cache_path, data['filename0'])
             fname1 = os.path.join(self.cache_path, data['filename1'])
-            result = root_tracking.process(fname0, fname1, data)
+            result = root_tracking.process(fname0, fname1, self.settings, data)
         
         return flask.jsonify({
             'points0':         result['points0'].tolist(),
@@ -56,17 +56,19 @@ class App(BaseApp):
             'statistics'         : result['statistics'],
         })
 
-    #override
+    #override    #TODO: unify
     def training(self):
-        imagefiles = dict(flask.request.form.lists())['filenames[]']
-        imagefiles = [os.path.join(self.cache_path, fname) for fname in imagefiles]
-        if not all([os.path.exists(fname) for fname in imagefiles]):
+        requestform  = flask.request.get_json(force=True)
+        options      = requestform['options']
+        if options['training_type'] not in ['detection', 'exclusion_mask']:
+            raise NotImplementedError()
+
+        imagefiles   = requestform['filenames']
+        imagefiles   = [os.path.join(self.cache_path, fname) for fname in imagefiles]
+        targetfiles  = backend.training.find_targetfiles(imagefiles)
+        if not all([os.path.exists(fname) for fname in imagefiles]) or not all(targetfiles):
             flask.abort(404)
         
-        targetfiles = [ f'{imgf}.segmentation.png' for imgf in imagefiles ]
-        if not all([os.path.exists(fname) for fname in targetfiles]):
-            flask.abort(404)
-        
-        backend.training.start_training(imagefiles, targetfiles)
+        backend.training.start_training(imagefiles, targetfiles, options, self.settings)
         return 'OK'
     

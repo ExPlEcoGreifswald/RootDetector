@@ -1,5 +1,6 @@
 {% import 'base/main_container.html' as base_main_container %}
 {% from   'roots/tracking_tab.html'  import tracking_tab %}
+{% from   'roots/training_tab.html'  import training_tab as roots_training_tab %}
 
 {% macro tabs() %}
 <div class="ui pointing secondary tabs menu">
@@ -13,5 +14,10 @@
 
 
 {% macro main_container(app) %}
-    {{ base_main_container.main_container( app, tabs = tabs(), extra = tracking_tab() ) }}
+    {{ base_main_container.main_container( 
+        app, 
+        tabs          = tabs(), 
+        training_tab  = roots_training_tab(app),
+        extra         = tracking_tab() 
+    ) }}
 {% endmacro %}

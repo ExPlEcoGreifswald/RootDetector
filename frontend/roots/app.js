@@ -5,8 +5,10 @@ RootDetectorApp = class extends BaseApp {
     static ViewControls    = ViewControls;
     static Settings        = RootsSettings;
     static FileInput       = RootsFileInput;
+    static Training        = RootsTraining;
 }
 
 
 //override
-App = RootDetectorApp;
+GLOBAL.App = RootDetectorApp;
+App        = RootDetectorApp;

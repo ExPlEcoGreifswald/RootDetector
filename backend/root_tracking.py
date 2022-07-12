@@ -2,7 +2,6 @@ import os
 import torch, torchvision
 import numpy as np
 import scipy.ndimage
-import cloudpickle
 import PIL.Image
 
 
@@ -11,12 +10,9 @@ from backend import GLOBALS
 
 
 
-def process(filename0, filename1, previous_data:dict=None):
+def process(filename0, filename1, settings, previous_data:dict=None):
     print(f'Performing root tracking on files {filename0} and {filename1}')
-    #modelfile  = os.path.join('models/root_tracking_models', GLOBALS.settings.tracking_active_model+'.cpkl')
-    #cloudpickle.load(open(modelfile, 'rb'))
-    #matchmodel = backend.load_tracking_model(GLOBALS.settings.tracking_active_model)
-    matchmodel = GLOBALS.settings.models['tracking']
+    matchmodel = settings.models['tracking']
 
     seg0f = f'{filename0}.segmentation.png'
     seg1f = f'{filename1}.segmentation.png'
@@ -25,13 +21,13 @@ def process(filename0, filename1, previous_data:dict=None):
         img0    = torchvision.transforms.ToTensor()(PIL.Image.open(filename0))
         img1    = torchvision.transforms.ToTensor()(PIL.Image.open(filename1))
         with GLOBALS.processing_lock:
-            seg0    = run_segmentation(filename0)
-            seg1    = run_segmentation(filename1)
+            seg0    = run_segmentation(filename0, settings)
+            seg1    = run_segmentation(filename1, settings)
         PIL.Image.fromarray( (seg0*255).astype('uint8') ).save( seg0f )
         PIL.Image.fromarray( (seg1*255).astype('uint8') ).save( seg1f )
     else:
-        seg0   = PIL.Image.open(seg0f) / np.float32(255)
-        seg1   = PIL.Image.open(seg1f) / np.float32(255)
+        seg0   = PIL.Image.open(seg0f).convert('L') / np.float32(255)
+        seg1   = PIL.Image.open(seg1f).convert('L') / np.float32(255)
     
     if previous_data is None:  #FIXME: better condition?
         img0    = torchvision.transforms.ToTensor()(PIL.Image.open(filename0))
@@ -44,8 +40,8 @@ def process(filename0, filename1, previous_data:dict=None):
             print()
             output['success'] = success = (len(output['points0'])>=16)
             output['n_matched_points'] = len(output['points0'])
-            output['tracking_model']     = GLOBALS.settings.active_models['tracking']
-            output['segmentation_model'] = GLOBALS.settings.active_models['detection']
+            output['tracking_model']     = settings.active_models['tracking']
+            output['segmentation_model'] = settings.active_models['detection']
     else:
         output      = {
             'points0'            : np.asarray(previous_data['points0']).reshape(-1,2),
@@ -92,8 +88,8 @@ def process(filename0, filename1, previous_data:dict=None):
     return output
 
 
-def run_segmentation(imgfile):
-    segmentation_model = GLOBALS.settings.models['detection']
+def run_segmentation(imgfile, settings):
+    segmentation_model = settings.models['detection']
     return backend.call_with_optional_kwargs(segmentation_model.process_image, imgfile, threshold=None)
 
 

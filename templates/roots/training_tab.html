@@ -1,0 +1,53 @@
+{% import 'base/training_tab.html' as base_training_tab %}
+
+
+{% macro training_controls(trainingmodule) %}
+<div class="ui segment form" style="margin-top:0px;">
+    <!--<h4 class="ui dividing header">Training options</h4>-->
+    <div class="field" id="training-model-type-field">
+        <div class="field">
+            <label>Model Type</label>
+            <div class="ui dropdown selection" id="training-model-type">
+                <input type="hidden" name="active-model">
+                <i class="dropdown icon"></i>
+                <div class="default text"></div>
+                <div class="menu">
+                  <div class="item active selected" data-value="detection">Root Detection</div>
+                  <div class="item"                 data-value="exclusion_mask">Exclusion Mask</div>
+                  <!--<div class="item" data-value="tracking">Root Tracking</div>-->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="ui divider"></div>
+
+    {{ base_training_tab.lr_epochs_fields(label="Hyperparameters") }}
+    
+    <div class="ui divider"></div>
+
+    {{ base_training_tab.starting_point_model_infobox() }}
+
+    <div class="ui divider"></div>
+
+    {{ base_training_tab.start_training_button(trainingmodule) }}
+</div>
+<script>
+    $('#training-model-type')
+        .dropdown({onChange: _ => {{ trainingmodule }}.refresh_tab() } )
+    $('#training-model-type-field .checkbox')
+        .checkbox({onChange: _ => {{trainingmodule}}.refresh_tab() } )
+        .checkbox('set checked')
+</script>
+{{ base_training_tab.save_model_field(trainingmodule) | indent }}
+
+{% endmacro %}
+
+
+{% macro training_tab(app) %}
+<div id="training-tab">
+    
+    {{ training_controls(trainingmodule = app+".Training") }}
+
+</div>
+{% endmacro %}
