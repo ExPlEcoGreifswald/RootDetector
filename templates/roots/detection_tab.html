@@ -26,7 +26,7 @@
     <div class="image-container">
         {{ base_js_templates.content_image(
             name           = "input",  
-            overlay        = base_js_templates.image_and_boxes_overlay("input"),
+            overlay        = base_js_templates.image_overlay("input"),
             viewcontrols   = app+".ViewControls"
           ) | indent(8) }}
         {{ base_js_templates.progress_dimmer() }}

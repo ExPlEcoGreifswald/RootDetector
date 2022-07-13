@@ -3,6 +3,13 @@
 RootsSettings = class extends BaseSettings{
 
     //override
+    static async load_settings(){
+        const data = await super.load_settings();
+
+        this.update_gpu_info(data);
+    }
+
+    //override
     static update_settings_modal(models){
         super.update_settings_modal(models)
 
@@ -26,6 +33,8 @@ RootsSettings = class extends BaseSettings{
         GLOBAL.settings.active_models['detection']      = $("#settings-active-model").dropdown('get value');
         GLOBAL.settings.active_models['exclusion_mask'] = $("#settings-exclusionmask-model").dropdown('get value');
         GLOBAL.settings.active_models['tracking']       = $("#settings-tracking-model").dropdown('get value');
+
+        GLOBAL.settings.use_gpu                         = $('#settings-gpu-enable').checkbox('is checked')
     }
 
     static on_exmask_checkbox(){
@@ -34,4 +43,16 @@ RootsSettings = class extends BaseSettings{
         $("#settings-exclusionmask-model-field").toggle(enabled)
     }
 
+    static update_gpu_info(data){
+        if(data['available_gpu']){
+            $('#settings-no-gpu-warning').hide()
+            $('#settings-gpu-available-box').show()
+            $('#settings-gpu-name').text(data['available_gpu'])
+        } else {
+            $('#settings-no-gpu-warning').show()                        //maybe just hide the whole gpu field?
+            $('#settings-gpu-available-box').hide()
+        }
+        console.log(data.settings)
+        $('#settings-gpu-enable').checkbox(!!data.settings['use_gpu']? 'check' : 'uncheck')
+    }
 }

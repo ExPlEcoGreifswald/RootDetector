@@ -2,6 +2,7 @@ from base.backend import GLOBALS
 from base.backend import pubsub
 import os
 
+import torch
 
 
 def start_training(imagefiles, targetfiles, training_options:dict, settings):
@@ -13,9 +14,10 @@ def start_training(imagefiles, targetfiles, training_options:dict, settings):
     training_type = training_options['training_type']
     assert training_type in ['detection', 'exclusion_mask']
 
+    device = 'cuda' if settings.use_gpu and torch.cuda.is_available() else 'cpu'
     with GLOBALS.processing_lock:
         GLOBALS.processing_lock.release()  #decrement recursion level bc acquired twice
-        model = settings.models[training_type]
+        model = settings.models[training_type].to(device)
         #indicate that the current model is unsaved
         settings.active_models[training_type] = ''
         ok = model.start_training(
@@ -26,6 +28,7 @@ def start_training(imagefiles, targetfiles, training_options:dict, settings):
             num_workers = 0, 
             callback=training_progress_callback
         )
+        model.cpu()
         return 'OK' if ok else 'INTERRUPTED'
 
 def training_progress_callback(x):

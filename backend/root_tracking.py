@@ -33,7 +33,8 @@ def process(filename0, filename1, settings, previous_data:dict=None):
         img0    = torchvision.transforms.ToTensor()(PIL.Image.open(filename0))
         img1    = torchvision.transforms.ToTensor()(PIL.Image.open(filename1))
         with GLOBALS.processing_lock:
-            output  = matchmodel.bruteforce_match(img0, img1, seg0, seg1, matchmodel, n=5000, cyclic_threshold=4, dev='cpu') #TODO: larger n
+            device  = 'cuda' if settings.use_gpu and torch.cuda.is_available() else 'cpu'
+            output  = matchmodel.bruteforce_match(img0, img1, seg0, seg1, matchmodel, n=5000, cyclic_threshold=4, dev=device) #TODO: larger n
             print()
             print(len(output['points0']))
             print('Matched percentage:', output['matched_percentage'])
@@ -89,8 +90,11 @@ def process(filename0, filename1, settings, previous_data:dict=None):
 
 
 def run_segmentation(imgfile, settings):
-    segmentation_model = settings.models['detection']
-    return backend.call_with_optional_kwargs(segmentation_model.process_image, imgfile, threshold=None)
+    device = 'cuda' if settings.use_gpu and torch.cuda.is_available() else 'cpu'
+    segmentation_model = settings.models['detection'].to(device)
+    result = backend.call_with_optional_kwargs(segmentation_model.process_image, imgfile, threshold=None)
+    segmentation_model.cpu()
+    return result
 
 
 #FIXME: this kind of doesnt belong here

@@ -7,19 +7,25 @@ import backend
 from base.backend.pubsub import PubSub
 from base.backend.app import get_cache_path
 
-
+import torch
 
 def process_image(image_path, settings,  no_exmask=False, **kwargs):
     basename      = os.path.basename(image_path)
     output_folder = get_cache_path()
+
+    device = 'cuda' if settings.use_gpu and torch.cuda.is_available() else 'cpu'
     with backend.GLOBALS.processing_lock:
         progress_callback   = lambda x: PubSub.publish({'progress':x, 'image':os.path.basename(image_path), 'stage':'roots'})
-        segmentation_model  = settings.models['detection']
+        segmentation_model  = settings.models['detection'].to(device)
         segmentation_result = segmentation_model.process_image(image_path, progress_callback=progress_callback)
+        segmentation_model.cpu()
+
         if settings.exmask_enabled and not no_exmask:
             progress_callback = lambda x: PubSub.publish({'progress':x, 'image':os.path.basename(image_path), 'stage':'mask'})
-            exmask_model  = settings.models['exclusion_mask']
+            exmask_model  = settings.models['exclusion_mask'].to(device)
             exmask_result = exmask_model.process_image(image_path, progress_callback=progress_callback)
+            exmask_model.cpu()
+
             segmentation_result = paste_exmask(segmentation_result, exmask_result)
     
     #FIXME: code duplication
