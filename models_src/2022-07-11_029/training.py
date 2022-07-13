@@ -61,7 +61,7 @@ class TrainingTask(torch.nn.Module):
         logs = self.validation_epoch_end(all_outputs)
         self.callback.on_batch_end(logs, i, len(loader))
     
-    def fit(self, loader_train, loader_valid=None, epochs='auto'):
+    def fit(self, loader_train, loader_valid=None, epochs='auto', device='cuda'):
         self.epochs = epochs
         if epochs == 'auto':
             self.epochs = max(15, 50 // len(loader_train))
@@ -73,7 +73,7 @@ class TrainingTask(torch.nn.Module):
         
         self.train().requires_grad_(True)
         optim, sched  = self.configure_optimizers()
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        device = device if torch.cuda.is_available() else 'cpu'
         torch.cuda.empty_cache()
         try:
             self.to(device)

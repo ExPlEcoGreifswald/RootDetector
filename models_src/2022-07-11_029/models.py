@@ -19,7 +19,7 @@ else:
 
 #internal modules
 MODULES = ['datasets', 'training']
-[datasets, traininglib] = [import_func('.'+m, __package__) for m in MODULES]
+[datasets, traininglib] = [import_func(('.' if __package__ else '')+m, __package__) for m in MODULES]
 
 
 
@@ -44,7 +44,7 @@ class UNet(torch.nn.Module):
             x = torch.relu(x) if relu else x
             return x
     
-    def __init__(self, backbone='mobilenet3l', pretrained:bool=True):
+    def __init__(self, backbone='mobilenet3l', colors=['WHITE'], pretrained:bool=True):
         torch.nn.Module.__init__(self)
         factory_func = globals().get(f'{backbone}_backbone', None)
         if factory_func is None:
@@ -57,6 +57,8 @@ class UNet(torch.nn.Module):
         self.up3 = self.UpBlock(C[-4]    + C[-5],  C[-5])
         self.up4 = self.UpBlock(C[-5]    + 3,      32)
         self.cls = torch.nn.Conv2d(32, 1, 3, padding=1)
+
+        self.colors = [getattr(datasets, c) for c in colors]
     
     def forward(self, x, return_features=False, sigmoid=True):
         device = list(self.parameters())[0].device
@@ -80,7 +82,7 @@ class UNet(torch.nn.Module):
     def load_image(self, path):
         return PIL.Image.open(path) / np.float32(255)
     
-    def process_image(self, image, use_onnx=True, progress_callback=lambda x:None, batchsize=4, threshold=0.5):
+    def process_image(self, image, progress_callback=lambda *x:None, threshold=0.5):
         #TODO? slice into patches
         if isinstance(image, str):
             image = self.load_image(image)
@@ -96,21 +98,24 @@ class UNet(torch.nn.Module):
     def start_training(self, 
                        imagefiles_train,      targetfiles_train, 
                        imagefiles_valid=None, targetfiles_valid=None, 
-                       epochs=100, callback=None, num_workers='auto',
-                       ds_kwargs={}, task_kwargs={}):
-        task     = traininglib.SegmentationTask(self, epochs=epochs, callback=callback, **task_kwargs)
-        ds_train = datasets.Dataset(imagefiles_train, targetfiles_train, augment=True, **ds_kwargs)
+                       epochs=100,            lr=1e-3, 
+                       callback=None,         num_workers='auto',
+                       ds_kwargs={},          task_kwargs={},
+                       fit_kwargs={},
+                       ):
+        task     = traininglib.SegmentationTask(self, epochs=epochs, lr=lr, callback=callback, **task_kwargs)
+        ds_train = datasets.Dataset(imagefiles_train, targetfiles_train, augment=True, colors=self.colors, **ds_kwargs)
         ld_train = ds_train.create_dataloader(batch_size=8, shuffle=True, num_workers=num_workers)
         ld_valid = None
         if imagefiles_valid is not None and targetfiles_valid is not None:
-            ds_valid = datasets.Dataset(imagefiles_valid, targetfiles_valid, augment=False, patchsize=5000, **ds_kwargs)  #full sized images
+            ds_valid = datasets.Dataset(imagefiles_valid, targetfiles_valid, augment=False, colors=self.colors, patchsize=5000, **ds_kwargs)  #full sized images
             ld_valid = ds_valid.create_dataloader(batch_size=1, shuffle=False, num_workers=num_workers)
         self.requires_grad_(True)
-        task.fit(ld_train, ld_valid, epochs)
+        task.fit(ld_train, ld_valid, epochs, **fit_kwargs)
         self.eval().cpu().requires_grad_(False)
 
     def stop_training(self):
-        traininglib.TrainingTask.request_stop()
+        traininglib.SegmentationTask.request_stop()
 
     def save(self, destination):
         if isinstance(destination, str):

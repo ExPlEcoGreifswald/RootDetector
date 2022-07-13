@@ -25,8 +25,9 @@ def start_training(imagefiles, targetfiles, training_options:dict, settings):
             targetfiles, 
             epochs      = int(training_options.get('epochs', 10)),
             lr          = float(training_options.get('lr', 1e-3)),
-            num_workers = 0, 
-            callback=training_progress_callback
+            num_workers = 0 if device=='cpu' else 'auto', 
+            callback    = training_progress_callback,
+            fit_kwargs  = {'device':device},
         )
         model.cpu()
         return 'OK' if ok else 'INTERRUPTED'
