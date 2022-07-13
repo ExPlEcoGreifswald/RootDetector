@@ -1,7 +1,14 @@
 {% import 'base/training_tab.html' as base_training_tab %}
 
+{% macro number_of_files_infobox() %}
+<div class="ui hidden message" id="training-number-of-files-info-message">
+  <p>Number of training files: <b id="training-number-of-files-info-label">xxx</b></p>
+</div>
+{% endmacro %}
+
 
 {% macro training_controls(trainingmodule) %}
+<div>
 <div class="ui segment form" style="margin-top:0px;">
     <!--<h4 class="ui dividing header">Training options</h4>-->
     <div class="field" id="training-model-type-field">
@@ -28,6 +35,8 @@
 
     {{ base_training_tab.starting_point_model_infobox() }}
 
+    {{ number_of_files_infobox() }}
+
     <div class="ui divider"></div>
 
     {{ base_training_tab.start_training_button(trainingmodule) }}
@@ -40,7 +49,7 @@
         .checkbox('set checked')
 </script>
 {{ base_training_tab.save_model_field(trainingmodule) | indent }}
-
+</div>
 {% endmacro %}
 
 
