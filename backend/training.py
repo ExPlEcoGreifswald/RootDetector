@@ -1,7 +1,8 @@
 from base.backend import GLOBALS
 from base.backend import pubsub
-import os
+from base.backend.app import get_cache_path
 
+import os
 import torch
 
 
@@ -27,6 +28,7 @@ def start_training(imagefiles, targetfiles, training_options:dict, settings):
             lr          = float(training_options.get('lr', 1e-3)),
             num_workers = 0 if device=='cpu' else 'auto', 
             callback    = training_progress_callback,
+            ds_kwargs   = {'tmpdir':get_cache_path()},
             fit_kwargs  = {'device':device},
         )
         model.cpu()

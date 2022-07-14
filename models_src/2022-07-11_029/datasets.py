@@ -12,13 +12,13 @@ BLACK  = (  0,  0,  0)
 
 
 class Dataset:
-    def __init__(self, inputfiles, targetfiles, patchsize=512, augment=False, colors=[WHITE, GREEN]):
+    def __init__(self, inputfiles, targetfiles, patchsize=512, augment=False, colors=[WHITE, GREEN], tmpdir='.'):
         self.augment      = augment
         self.patchsize    = patchsize
         self.colors       = colors
         self.inputfiles   = inputfiles
         self.targetfiles  = targetfiles
-        self.cachedir     = tempfile.TemporaryDirectory(prefix='delete_me_cache_', dir='.')
+        self.cachedir     = tempfile.TemporaryDirectory(prefix='delete_me_cache_', dir=tmpdir)
         print(self.cachedir.name)
         self.n_patches     = self._load_and_cache_all(inputfiles, targetfiles)
 
