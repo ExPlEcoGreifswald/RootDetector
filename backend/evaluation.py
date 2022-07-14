@@ -5,9 +5,6 @@ import zipfile, os, io
 
 
 def evaluate_single_file(predictionfile:str, annotationfile:str) -> dict:
-    #print('Evaluating ', predictionfile, annotationfile)
-    #ypred = PIL.Image.open(predictionfile).convert('L') > np.float32(0.5)   #TODO:colors!
-    #ytrue = PIL.Image.open(annotationfile).convert('L') > np.float32(0.5)
     ypred = load_segmentationfile(predictionfile)
     ytrue = load_segmentationfile(annotationfile)
 
@@ -51,7 +48,17 @@ def precision_recall(ytrue:np.array, ypred:np.array) -> dict:
     TP      = (ypred & ytrue).sum(-1).sum(-1)
     FP      = (ypred & (~ytrue)).sum(-1).sum(-1)
     FN      = ((~ypred) & ytrue).sum(-1).sum(-1)
-    return {'TP':TP, 'FP':FP, 'FN':FN, 'precision':TP/(TP+FP), 'recall':TP/(TP+FN)}
+    precision = TP/(TP+FP)
+    recall    = TP/(TP+FN)
+    f1        = 2 / (precision**-1 + recall**-1)
+    return {
+        'TP':TP, 
+        'FP':FP, 
+        'FN':FN, 
+        'precision': precision, 
+        'recall':    recall,
+        'F1':        f1,
+    }
 
 
 
@@ -76,15 +83,19 @@ def create_error_map(ytrue:np.array, ypred:np.array) -> np.array:
 
 
 def results_to_csv(results:list) -> str:
-    csv_header = ['#Filename', 'IoU', 'Precision', 'Recall']
+    csv_header = ['#Filename', 'True Positives (px)', 'False Positives (px)', 'False Negatives (px)', 'IoU', 'Precision', 'Recall', 'F1']
     csv_data   = []
     for r in results:
         filename  = r['predictionfile'].replace('.segmentation.png','')
         csv_data += [[
             filename,
+            f"{r['TP']:d}",
+            f"{r['FP']:d}",
+            f"{r['FN']:d}",
             f"{r['IoU']:.2f}",
             f"{r['precision']:.2f}",
             f"{r['recall']:.2f}",
+            f"{r['F1']:.2f}",
         ]]
         assert len(csv_data[-1]) == len(csv_header)
     return '\n'.join([', '.join(linedata) for linedata in ([csv_header] + csv_data)])
