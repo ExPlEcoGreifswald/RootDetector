@@ -55,6 +55,30 @@ def test_associate_predictions_to_annotations_zipped():
     assert len(pairs) == 1
     assert os.path.exists(pairs[0][0]), 'failed to unzip'
 
+def test_associate_inputs_to_annotations():
+    inputs = [
+        'AAA.tiff',
+        'AAA.tiff.png',
+        'some_folder/BBB.tif',
+        'DDD.tiff',
+        'EEE.jpg',
+    ]
+    annotations = [
+        'some_other_folder/BBB.tif.png',
+        'AAA.png',
+        'CCC.png',
+        'EEE.segmentation.png'
+    ]
+
+    pairs = backend.cli.associate_inputs_to_annotations(inputs, annotations)
+    print(pairs)
+    assert pairs == [
+        (inputs[0], annotations[1]),
+        (inputs[2], annotations[0]),
+        (inputs[4], annotations[3]),
+    ]
+
+
 def test_write_processing_results():
     tmpdir = tempfile.TemporaryDirectory()
     mockresults = [{

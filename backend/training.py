@@ -5,37 +5,37 @@ from base.backend.app import get_cache_path
 import os
 import torch
 
+def training_progress_callback(x):
+    pubsub.PubSub.publish({'progress':x,  'description':'Training...'}, event='training')
 
-def start_training(imagefiles, targetfiles, training_options:dict, settings):
+
+def start_training(imagefiles, targetfiles, training_options:dict, settings, callback=training_progress_callback):
     locked = GLOBALS.processing_lock.acquire(blocking=False)
     if not locked:
         raise RuntimeError('Cannot start training. Already processing.')
 
-    print('Training options: ', training_options)
     training_type = training_options['training_type']
     assert training_type in ['detection', 'exclusion_mask']
 
     device = 'cuda' if settings.use_gpu and torch.cuda.is_available() else 'cpu'
     with GLOBALS.processing_lock:
         GLOBALS.processing_lock.release()  #decrement recursion level bc acquired twice
-        model = settings.models[training_type].to(device)
+        model = settings.models[training_type]
         #indicate that the current model is unsaved
         settings.active_models[training_type] = ''
+
         ok = model.start_training(
             imagefiles, 
             targetfiles, 
             epochs      = int(training_options.get('epochs', 10)),
             lr          = float(training_options.get('lr', 1e-3)),
             num_workers = 0 if device=='cpu' else 'auto', 
-            callback    = training_progress_callback,
+            callback    = callback,
             ds_kwargs   = {'tmpdir':get_cache_path()},
             fit_kwargs  = {'device':device},
         )
         model.cpu()
         return 'OK' if ok else 'INTERRUPTED'
-
-def training_progress_callback(x):
-    pubsub.PubSub.publish({'progress':x,  'description':'Training...'}, event='training')
 
 def find_targetfiles(inputfiles):
     def find_targetfile(imgf):
