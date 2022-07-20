@@ -10,7 +10,8 @@ numpy==1.17.2
 Pillow==7.1.2
 scikit-image==0.16.2
 
-setuptools<45.0.0
-pyinstaller==3.5
+setuptools==63.1.0
+pyinstaller==5.1
+
 scipy==1.4.1
 #matplotlib<3.2
