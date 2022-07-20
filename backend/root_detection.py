@@ -55,13 +55,24 @@ def process_image(image_path, settings,  no_exmask=False, **kwargs):
         'statistics'  : stats,
     }
 
-def result_to_rgb(x):
+def result_to_rgb(x:np.array) -> np.array:
+    '''Convert a segmentation map with labels 0,1,2 to RGB format'''
     assert len(x.shape)==2
     x     = x[...,np.newaxis]
     WHITE = (1.,1.,1.)
     RED   = (1.,0.,0.)
     x     = (x==1) * WHITE   +  (x==2) * RED
     return x
+
+def result_from_rgb(x:np.array) -> np.array:
+    '''Convert a RGB array to a segmentation map with labels 0,1,2'''
+    assert len(x.shape)==3
+    WHITE  = (1.,1.,1.)
+    RED    = (1.,0.,0.)
+    result = (x == WHITE).all(-1) *1 \
+           + (x == RED  ).all(-1) *2
+    return result
+
 
 def paste_exmask(segmask, exmask):
     exmask     = exmask.squeeze()
@@ -85,7 +96,8 @@ def postprocess(segmentation_filename):
     #FIXME: code duplication
 
     assert segmentation_filename.endswith('.segmentation.png')
-    segmentation = PIL.Image.open(segmentation_filename).convert('L') / np.float32(255)
+    segmentation = PIL.Image.open(segmentation_filename).convert('RGB') / np.float32(255)
+    segmentation = result_from_rgb(segmentation)
     skeleton     = postprocessing.skeletonize(segmentation)
     mask         = None
     #mask         = search_mask(image_path)  #TODO
