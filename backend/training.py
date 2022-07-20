@@ -2,7 +2,7 @@ from base.backend import GLOBALS
 from base.backend import pubsub
 from base.backend.app import get_cache_path
 
-import os
+import os, sys
 import torch
 
 def training_progress_callback(x):
@@ -29,7 +29,7 @@ def start_training(imagefiles, targetfiles, training_options:dict, settings, cal
             targetfiles, 
             epochs      = int(training_options.get('epochs', 10)),
             lr          = float(training_options.get('lr', 1e-3)),
-            num_workers = 0 if device=='cpu' else 'auto', 
+            num_workers = 'auto' if 'win' not in sys.platform else 0,
             callback    = callback,
             ds_kwargs   = {'tmpdir':get_cache_path()},
             fit_kwargs  = {'device':device},

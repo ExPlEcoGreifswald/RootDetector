@@ -30,7 +30,7 @@ def test_evaluate_single():
         assert len(csv_stats) == 2
         assert csv_stats[0].startswith('#')
         assert csv_stats[1].split(',')[0].strip() == 'AAA.tiff'
-        assert csv_stats[1].split(',')[1].strip() == '0.33'
+        assert csv_stats[1].split(',')[4].strip() == '0.33'   #iou
         
         assert 'AAA.tiff/error_map.png' in contents
 

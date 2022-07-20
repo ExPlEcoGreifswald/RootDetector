@@ -80,7 +80,7 @@ class UNet(torch.nn.Module):
         return x
     
     def load_image(self, path):
-        return PIL.Image.open(path) / np.float32(255)
+        return PIL.Image.open(path).convert('RGB') / np.float32(255)
     
     def process_image(self, image, progress_callback=lambda *x:None, threshold=0.5):
         #TODO? slice into patches
