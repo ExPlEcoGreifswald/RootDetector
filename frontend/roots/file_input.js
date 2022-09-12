@@ -2,10 +2,10 @@
 
 RootsFileInput = class extends BaseFileInput{
     //override
-    static refresh_filetable(files){
-        const promise = BaseFileInput.refresh_filetable(files)
-        RootTracking.set_input_files(files)
-        return promise
+    static async refresh_filetable(files){
+        const promise  = BaseFileInput.refresh_filetable(files)
+        const promise2 = RootTracking.set_input_files(files)
+        return Promise.all([promise, promise2])
     }
 
     //override

@@ -1,31 +1,45 @@
 var RootTracking = new function() {
     
-    this.set_input_files = function(files){
+    this.set_input_files = async function(files){
+        //clear the file table
         var $table = $('#tracking-filetable tbody')
         $table.find('tr').remove()
 
-        var n_pairs = 0
-        for(var f0 of files){
-            for(var f1 of files){
-                if(f0 == f1)
-                    continue;
-                
-                try{
-                    var parsed0 = parse_filename(f0.name)
-                    var parsed1 = parse_filename(f1.name)
-                } catch {
-                    continue;
-                }
-                if(parsed0.base == parsed1.base && parsed0.date < parsed1.date){
-                    $('template#tracking-item').tmpl({filename0:f0.name, filename1:f1.name}).appendTo($table)
-                    //GLOBAL.files[f0.name].tracking_results[f1.name] = {};
-                    GLOBAL.files[f0.name].tracking_results = {[f1.name]: {}};  //TODO: refactor
-                    n_pairs += 1;
-                }
+        const parsed_filenames = files.map( 
+            f => { try{ return parse_filename(f.name)  } catch {  } }
+        )
+
+        //group files together by their experiment name and sort by date
+        //(grouped_files maps experiment name to array of indices)
+        const grouped_files = new Map()
+        for(const i in files){
+            const groupname = parsed_filenames[i].base
+            let   group     = grouped_files.get(groupname) ?? []
+            group.push(i)
+            group.sort( (i0,i1) => parsed_filenames[i0].date - parsed_filenames[i1].date)
+            grouped_files.set( groupname, group )
+        }
+        const groupnames = [...grouped_files.keys()]
+        groupnames.sort()
+        
+        //construct the file table
+        const table_rows = []
+        for(const groupname of groupnames){
+            const group = grouped_files.get(groupname)
+            for(const i in group.slice(0,-1)){
+                const [i0,i1] = [group[i], group[Number(i)+1]]
+                const [f0,f1] = [files[i0], files[i1]]
+
+                table_rows.push(
+                    $('template#tracking-item').tmpl({filename0:f0.name, filename1:f1.name})
+                )
+                GLOBAL.files[f0.name].tracking_results = {[f1.name]: {}};  //TODO: refactor
             }
         }
 
-        $('#tracking-filetable thead th').text(`${n_pairs} Image Pair${(n_pairs==1)?'':'s'} Loaded`)
+        setTimeout( () => $table.append( table_rows ), 0 )
+        const n = table_rows.length;
+        $('#tracking-filetable thead th').text(`${n} Image Pair${(n==1)?'':'s'} Loaded`)
     };
 
     this.load_result = async function(filename0, filename1, tracking_results_file, segmentation0_file, segmentation1_file){
@@ -145,6 +159,7 @@ var RootTracking = new function() {
                 $dimmer.dimmer({closable:true});
             }
         }).fail( () => {
+            //FIXME: does not show an error if flask is stopped
             $dimmer.find('.content.processing').hide()
             $dimmer.find('.content.failed').show()
             $dimmer.dimmer({closable:true});
