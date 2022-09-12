@@ -1,4 +1,4 @@
-import os, glob
+import os, glob, typing as tp
 import numpy as np
 
 import PIL.Image
@@ -9,54 +9,71 @@ from base.backend.app import get_cache_path
 
 import torch
 
-def process_image(image_path, settings,  no_exmask=False, **kwargs):
-    basename      = os.path.basename(image_path)
-    output_folder = get_cache_path()
 
-    device = 'cuda' if settings.use_gpu and torch.cuda.is_available() else 'cpu'
+def run_model(image_path:str, settings:'backend.Settings', modeltype:str, **kwargs) -> np.ndarray:
+    basename   = os.path.basename(image_path)
+    device     = 'cuda' if settings.use_gpu and torch.cuda.is_available() else 'cpu'
     with backend.GLOBALS.processing_lock:
-        progress_callback   = lambda x: PubSub.publish({'progress':x, 'image':os.path.basename(image_path), 'stage':'roots'})
-        segmentation_model  = settings.models['detection'].to(device)
-        segmentation_result = segmentation_model.process_image(image_path, progress_callback=progress_callback)
-        segmentation_model.cpu()
+        progress_callback = lambda x: PubSub.publish({'progress':x, 'image':basename, 'stage':modeltype})
+        model  = settings.models[modeltype].to(device)
+        result = model.process_image(image_path, progress_callback=progress_callback, **kwargs)
+        model.cpu()
+    return result
 
-        if settings.exmask_enabled and not no_exmask:
-            progress_callback = lambda x: PubSub.publish({'progress':x, 'image':os.path.basename(image_path), 'stage':'mask'})
-            exmask_model  = settings.models['exclusion_mask'].to(device)
-            exmask_result = exmask_model.process_image(image_path, progress_callback=progress_callback)
-            exmask_model.cpu()
+def process_image(image_path:str, settings:'backend.Settings') -> dict:
+    segmentation = run_model(image_path, settings, 'detection')
 
-            segmentation_result = paste_exmask(segmentation_result, exmask_result)
+    exmask       = search_for_custom_maskfile(image_path)
+    if settings.exmask_enabled and exmask is None:
+        exmask   = run_model(image_path, settings, 'exclusion_mask')
     
-    #FIXME: code duplication
-    skelresult   = postprocessing.skeletonize(segmentation_result)
-    mask         = search_mask(image_path)
-
-    stats        = postprocessing.compute_statistics(segmentation_result, skelresult, mask)
-
-    result_rgb     = result_to_rgb(segmentation_result)
-    skelresult_rgb = result_to_rgb(skelresult)
-
-    if mask is not None:
-        result_rgb       = add_mask(result_rgb, mask)
-        skelresult_rgb   = add_mask(skelresult_rgb, mask)
+    result = paste_exmask(segmentation, exmask)
+    result = postprocess(result)
+    return save_result(result, image_path)
 
 
+def postprocess_segmentation_file(path:str) -> dict:
+    assert path.endswith('.segmentation.png')
+    image_path   = path.replace('.segmentation.png', '')
+    segmentation = PIL.Image.open(path).convert('RGB') / np.float32(255)
+    segmentation = result_from_rgb(segmentation)
+
+    result = postprocess(segmentation)
+    return save_result(result, image_path)
+
+
+def postprocess(segmentation_result:np.ndarray) -> dict:
+    skeleton           = postprocessing.skeletonize(segmentation_result)
+    stats              = postprocessing.compute_statistics(segmentation_result, skeleton)
+    segmentation_rgb   = result_to_rgb(segmentation_result)
+    skeleton_rgb       = result_to_rgb(skeleton)
+
+    return {
+        'segmentation': segmentation_rgb,
+        'skeleton'    : skeleton_rgb,
+        'statistics'  : stats,
+    }
+
+def save_result(result:dict, image_path:str) -> dict:
+    basename           = os.path.basename(image_path)
+    output_folder      = get_cache_path()
     segmentation_fname = f'{basename}.segmentation.png'
-    segmentation_path  = os.path.join(output_folder, segmentation_fname)
     skeleton_fname     = f'{basename}.skeleton.png'
+    segmentation_path  = os.path.join(output_folder, segmentation_fname)
     skeleton_path      = os.path.join(output_folder, skeleton_fname)
-    backend.write_as_png(segmentation_path, result_rgb)
-    backend.write_as_png(skeleton_path, skelresult_rgb)
+    
+    backend.write_as_png(segmentation_path, result['segmentation'])
+    backend.write_as_png(skeleton_path, result['skeleton'])
 
     return {
         'segmentation': segmentation_fname,
         'skeleton'    : skeleton_fname,
-        'statistics'  : stats,
+        'statistics'  : result['statistics'],
     }
 
-def result_to_rgb(x:np.array) -> np.array:
-    '''Convert a segmentation map with labels 0,1,2 to RGB format'''
+
+def result_to_rgb(x:np.ndarray) -> np.ndarray:
+    '''Convert a segmentation map with classes 0,1,2 to RGB format'''
     assert len(x.shape)==2
     x     = x[...,np.newaxis]
     WHITE = (1.,1.,1.)
@@ -64,8 +81,8 @@ def result_to_rgb(x:np.array) -> np.array:
     x     = (x==1) * WHITE   +  (x==2) * RED
     return x
 
-def result_from_rgb(x:np.array) -> np.array:
-    '''Convert a RGB array to a segmentation map with labels 0,1,2'''
+def result_from_rgb(x:np.ndarray) -> np.ndarray:
+    '''Convert a RGB array to a segmentation map with classes 0,1,2'''
     assert len(x.shape)==3
     WHITE  = (1.,1.,1.)
     RED    = (1.,0.,0.)
@@ -74,47 +91,21 @@ def result_from_rgb(x:np.array) -> np.array:
     return result
 
 
-def paste_exmask(segmask, exmask):
+def paste_exmask(segmentation:np.ndarray, exmask:np.ndarray) -> np.ndarray:
+    '''Combine two binary masks into a label map with classes 0,1,2'''
     exmask     = exmask.squeeze()
     TAPE_VALUE = 2
-    return np.where(exmask>0, TAPE_VALUE, segmask)
+    return np.where(exmask>0, TAPE_VALUE, segmentation)
 
-def search_mask(input_image_path):
-    '''Looks for a file with prefix "mask_" in the same directory as input_image_path'''
+
+def search_for_custom_maskfile(input_image_path:str) -> tp.Union[np.ndarray, None]:
+    '''Search for a mask file that was manually uploaded by user in the same directory as input_image_path'''
     basename = os.path.splitext(os.path.basename(input_image_path))[0]
-    pattern  = os.path.join( os.path.dirname(input_image_path), f'{basename}.excludemask.png')
+    pattern  = os.path.join( os.path.dirname(input_image_path), f'{basename}.exclusionmask.png')
     masks    = glob.glob(pattern)
     if len(masks)==1:
-        return PIL.Image.open(masks[0]).convert('RGB') / np.float32(255)
-
-def add_mask(image_rgb, mask):
-    masked_image  = np.where( np.any(mask, axis=-1, keepdims=True)>0, mask, image_rgb )
-    return masked_image
-
-
-def postprocess(segmentation_filename):
-    #FIXME: code duplication
-
-    assert segmentation_filename.endswith('.segmentation.png')
-    segmentation = PIL.Image.open(segmentation_filename).convert('RGB') / np.float32(255)
-    segmentation = result_from_rgb(segmentation)
-    skeleton     = postprocessing.skeletonize(segmentation)
-    mask         = None
-    #mask         = search_mask(image_path)  #TODO
-    stats        = postprocessing.compute_statistics(segmentation, skeleton, mask)
-
-    #segmentation_rgb     = result_to_rgb(segmentation)
-    skeleton_rgb         = result_to_rgb(skeleton)
-
-    #segmentation_fname = os.path.join(output_folder, f'{basename}.segmentation.png')
-    skeleton_fname     = segmentation_filename.replace('.segmentation.png', '.skeleton.png')
-    #write_as_png(segmentation_fname, result_rgb)
-    backend.write_as_png(skeleton_fname, skeleton_rgb)
-
-    return {
-        'segmentation': segmentation_filename,
-        'skeleton'    : skeleton_fname,
-        'statistics'  : stats,
-    }
-
+        mask = PIL.Image.open(masks[0]).convert('RGB') / np.float32(255)
+        #convert rgb to binary array
+        mask = np.any(mask, axis=-1)
+        return mask
 
