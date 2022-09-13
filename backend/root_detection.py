@@ -87,8 +87,10 @@ def result_from_rgb(x:np.ndarray) -> np.ndarray:
     return result
 
 
-def paste_exmask(segmentation:np.ndarray, exmask:np.ndarray) -> np.ndarray:
+def paste_exmask(segmentation:np.ndarray, exmask:tp.Union[np.ndarray,None]) -> np.ndarray:
     '''Combine two binary masks into a label map with classes 0,1,2'''
+    if exmask is None:
+        return segmentation
     exmask     = exmask.squeeze()
     TAPE_VALUE = 2
     return np.where(exmask>0, TAPE_VALUE, segmentation)

@@ -13,12 +13,12 @@ class LoadResultsTest(BaseCase):
         ]
         self.send_input_files_from_assets(filenames)
         #some time needed for postprocessing
-        self.sleep(0.5)
+        self.sleep(1.0)
 
         root_css = f'[filename="{filenames[0]}"]'
 
         #make sure the row label is bold to indicate that this file is processed
-        script = f''' return $('{root_css} label').css('font-weight') '''
+        script = f''' return $('{root_css}.table-row label').css('font-weight') '''
         assert int(self.execute_script(script)) > 500
 
         #re-download result

@@ -13,7 +13,9 @@ var RootTracking = new function() {
         //(grouped_files maps experiment name to array of indices)
         const grouped_files = new Map()
         for(const i in files){
-            const groupname = parsed_filenames[i].base
+            const groupname = parsed_filenames[i]?.base
+            if(groupname == undefined)
+                continue;
             let   group     = grouped_files.get(groupname) ?? []
             group.push(i)
             group.sort( (i0,i1) => parsed_filenames[i0].date - parsed_filenames[i1].date)
