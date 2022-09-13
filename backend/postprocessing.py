@@ -15,17 +15,13 @@ def compute_statistics(result, skeletonized_result):
     result              = (result              == 1)
     skeletonized_result = (skeletonized_result == 1)*1
 
-    N_o    = compute_orthogonal_connections(skeletonized_result)
-    N_d    = compute_diagonal_connections(skeletonized_result)
-    kimura = kimura_length(N_o, N_d)
+    kimura = kimura_length(skeletonized_result)
     widths = width_histogram(result, skeletonized_result)
     return {
         'sum' :             int(result.sum()),
         'sum_skeleton' :    int(skeletonized_result.sum()),
         'sum_mask':         int(N_mask),
         'sum_negative':     int(N_neg),
-        'connections_orth': int(N_o),
-        'connections_diag': int(N_d),
         'kimura_length':    int(kimura),
         'widths':           widths.tolist(),
     }
@@ -37,22 +33,26 @@ def skeletonize(image):
     skel = np.where(image>1, image, skel)
     return skel
 
-def compute_diagonal_connections(x):
+def compute_diagonal_connections(x:np.ndarray) -> int:
+    x  = np.asarray(x, dtype='int32')
     k0 = np.array( [ [0,1],[1,0] ] )
     k1 = np.array( [ [1,0],[0,1] ] )
     r0 = scipy.ndimage.convolve(x, k0, mode='constant')
     r1 = scipy.ndimage.convolve(x, k1, mode='constant')
     return ((r0==2) | (r1==2)).sum()
 
-def compute_orthogonal_connections(x):
+def compute_orthogonal_connections(x:np.ndarray) -> int:
+    x  = np.asarray(x, dtype='int32')
     k0 = np.array( [ [1,],[1] ] )
     k1 = np.array( [ [1,   1] ] )
     r0 = scipy.ndimage.convolve(x, k0, mode='constant')
     r1 = scipy.ndimage.convolve(x, k1, mode='constant')
     return ((r0==2) | (r1==2)).sum()
 
-def kimura_length(N_o, N_d):
+def kimura_length(skeletonized_result:np.ndarray) -> float:
     '''Kimura, K., Kikuchi, S., & Yamasaki, S. I. (1999). Accurate root length measurement by image analysis. Plant and Soil, 216(1), 117-127.'''
+    N_o = compute_orthogonal_connections(skeletonized_result)
+    N_d = compute_diagonal_connections(skeletonized_result)
     return ( N_d**2 + (N_d + N_o/2)**2 )**0.5   + N_o/2
 
 

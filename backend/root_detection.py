@@ -22,13 +22,9 @@ def run_model(image_path:str, settings:'backend.Settings', modeltype:str, **kwar
 
 def process_image(image_path:str, settings:'backend.Settings') -> dict:
     segmentation = run_model(image_path, settings, 'detection')
-
-    exmask       = search_for_custom_maskfile(image_path)
-    if settings.exmask_enabled and exmask is None:
-        exmask   = run_model(image_path, settings, 'exclusion_mask')
-    
-    result = paste_exmask(segmentation, exmask)
-    result = postprocess(result)
+    exmask       = maybe_compute_exclusionmask(image_path, settings)
+    result       = paste_exmask(segmentation, exmask)
+    result       = postprocess(result)
     return save_result(result, image_path)
 
 
@@ -97,6 +93,12 @@ def paste_exmask(segmentation:np.ndarray, exmask:np.ndarray) -> np.ndarray:
     TAPE_VALUE = 2
     return np.where(exmask>0, TAPE_VALUE, segmentation)
 
+def maybe_compute_exclusionmask(image_path:str, settings:'backend.Settings') -> np.ndarray:
+    '''Compute the exclusion mask if enabled or load a custom mask file'''
+    exmask  = search_for_custom_maskfile(image_path)
+    if settings.exmask_enabled and exmask is None:
+        exmask   = run_model(image_path, settings, 'exclusion_mask')
+    return exmask
 
 def search_for_custom_maskfile(input_image_path:str) -> tp.Union[np.ndarray, None]:
     '''Search for a mask file that was manually uploaded by user in the same directory as input_image_path'''
