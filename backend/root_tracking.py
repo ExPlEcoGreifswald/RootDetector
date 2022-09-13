@@ -1,4 +1,4 @@
-import os
+import os, typing as tp
 import torch, torchvision
 import numpy as np
 import scipy.ndimage
@@ -63,7 +63,9 @@ def process(filename0, filename1, settings, previous_data:dict=None):
     np.save(f'{filename0}.{os.path.basename(filename1)}.imap.npy', imap.astype('float16'))  #f16 to save space & time
 
     warped_seg0    = matchmodel.warp(seg0, imap)
-    warped_exmask0 = matchmodel.warp(exmask0, imap)
+    warped_exmask0 = None
+    if exmask0 is not None:
+        warped_exmask0 = matchmodel.warp(exmask0, imap)
     gmap           = matchmodel.create_growth_map_rgba( warped_seg0>0.5, seg1>0.5, )
     gmap           = paste_exclusionmask(gmap, warped_exmask0)
 
@@ -98,7 +100,8 @@ def ensure_exclusionmask(input_image_path:str, settings:'backend.Settings') -> n
     exmaskf = f'{input_image_path}.exclusionmask.cache.png'
     if not os.path.exists(exmaskf):
         exmask = backend.root_detection.maybe_compute_exclusionmask(input_image_path, settings)
-        backend.write_as_png(exmaskf, exmask)
+        if exmask is not None:
+            backend.write_as_png(exmaskf, exmask)
     else:
         exmask = PIL.Image.open(segf).convert('L') / np.float32(255)
     return exmask
@@ -111,7 +114,9 @@ class COLORS:
     GROWTH   = ( 96,209,130,255)
     EXMASK   = (255,  0,  0,255)
 
-def paste_exclusionmask(turnovermap_rgba:np.ndarray, exmask:np.ndarray) -> np.ndarray:
+def paste_exclusionmask(turnovermap_rgba:np.ndarray, exmask:tp.Union[np.ndarray, None]) -> np.ndarray:
+    if exmask is None:
+        return turnovermap_rgba
     return np.where(exmask[...,None]>0, COLORS.EXMASK, turnovermap_rgba).astype('uint8')
 
 

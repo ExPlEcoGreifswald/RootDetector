@@ -95,7 +95,7 @@ def paste_exmask(segmentation:np.ndarray, exmask:tp.Union[np.ndarray,None]) -> n
     TAPE_VALUE = 2
     return np.where(exmask>0, TAPE_VALUE, segmentation)
 
-def maybe_compute_exclusionmask(image_path:str, settings:'backend.Settings') -> np.ndarray:
+def maybe_compute_exclusionmask(image_path:str, settings:'backend.Settings') -> tp.Union[np.ndarray, None]:
     '''Compute the exclusion mask if enabled or load a custom mask file'''
     exmask  = search_for_custom_maskfile(image_path)
     if settings.exmask_enabled and exmask is None:
