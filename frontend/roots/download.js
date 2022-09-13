@@ -127,14 +127,18 @@ RootTrackingDownload = class extends BaseDownload {
         var stats = GLOBAL.files[filename0].tracking_results[filename1].statistics;
 
         var header = [
-            'Filename 1', 'Filename 2', 
-            '# same pixels',          '# decay pixels',          '#growth pixels',
-            '# same skeleton pixels', '# decay skeleton pixels', '#growth skeleton pixels',
+            'Filename 1',           'Filename 2', 
+            'same pixels',          'decay pixels',          'growth pixels',
+            'background pixels',    'mask pixels',
+            'same skeleton pixels', 'decay skeleton pixels', 'growth skeleton pixels',
+            'same kimura length',   'decay kimura length',   'growth kimura length',
         ]
         var data   = [
-            filename0,    filename1,    
+            filename0,         filename1,    
             stats.sum_same,    stats.sum_decay,    stats.sum_growth,
+            stats.sum_negative,stats.sum_exmask,
             stats.sum_same_sk, stats.sum_decay_sk, stats.sum_growth_sk,
+            stats.kimura_same, stats.kimura_decay, stats.kimura_growth,
         ]
 
         //sanity check

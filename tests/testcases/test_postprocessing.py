@@ -16,7 +16,7 @@ def test_postprocessing_with_exmask():
     ypred_png = os.path.join(tmpdir.name, 'AAA.tiff.segmentation.png')
     PIL.Image.fromarray(ypred).save(ypred_png)
 
-    out = backend.root_detection.postprocess(ypred_png)
+    out = backend.root_detection.postprocess_segmentation_file(ypred_png)
     assert out['statistics']['sum']      == (ypred[25:50,:,0].size)
     assert out['statistics']['sum_mask'] == (ypred[  :25,:,0].size)
 

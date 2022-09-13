@@ -25,7 +25,7 @@ class App(BaseApp):
         if not os.path.exists(full_path):
             flask.abort(404)
         
-        result = root_detection.postprocess(full_path)
+        result = root_detection.postprocess_segmentation_file(full_path)
         result['segmentation'] = os.path.basename(result['segmentation'])
         result['skeleton']     = os.path.basename(result['skeleton'])
         return flask.jsonify(result)

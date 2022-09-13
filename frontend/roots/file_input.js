@@ -2,10 +2,10 @@
 
 RootsFileInput = class extends BaseFileInput{
     //override
-    static refresh_filetable(files){
-        const promise = BaseFileInput.refresh_filetable(files)
-        RootTracking.set_input_files(files)
-        return promise
+    static async refresh_filetable(files){
+        const promise  = BaseFileInput.refresh_filetable(files)
+        const promise2 = RootTracking.set_input_files(files)
+        return Promise.all([promise, promise2])
     }
 
     //override
@@ -37,7 +37,7 @@ RootsFileInput = class extends BaseFileInput{
         }
     }
 
-    static on_excludemasks_select(event){
+    static on_exclusionmasks_select(event){
         for(var maskfile of event.target.files){
             var maskbasename = remove_file_extension(maskfile.name)
 
@@ -53,7 +53,7 @@ RootsFileInput = class extends BaseFileInput{
                     //set file as not processed (needs reprocessing)
                     App.Detection.set_results(inputfile.name, undefined)
             
-                    var new_name   = `${remove_file_extension(inputfile.name)}.excludemask.png`
+                    var new_name   = `${remove_file_extension(inputfile.name)}.exclusionmask.png`
                         maskfile   = rename_file(maskfile, new_name)
                     upload_file_to_flask(maskfile)
                 }
