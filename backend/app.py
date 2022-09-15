@@ -5,6 +5,7 @@ import flask
 
 import backend
 import backend.training
+import backend.settings
 from . import root_detection
 from . import root_tracking
 
@@ -12,9 +13,12 @@ from . import root_tracking
 
 class App(BaseApp):
     def __init__(self, *args, **kw):
+        backend.settings.ensure_pretrained_models()
+        
         super().__init__(*args, **kw)
         if self.is_reloader:
             return
+
 
         self.route('/process_root_tracking', methods=['GET', 'POST'])(self.process_root_tracking)
         self.route('/postprocess_detection/<filename>')(self.postprocess_detection)

@@ -23,13 +23,13 @@ if rc!=0:
     sys.exit(rc)
 
 shutil.copytree('static', build_dir+'/static')
-shutil.copytree('models', build_dir+'/models')
+os.makedirs(build_dir+'/models/')
+shutil.copy('models/pretrained_models.txt', build_dir+'/models/')
 if 'linux' in sys.platform:
     os.symlink('/main/main', build_dir+'/main.run')
 else:
     open(build_dir+'/main.bat', 'w').write(r'SET ROOT_PATH=%~dp0'+'\nmain\main.exe %*'+'\npause')
 shutil.rmtree('./build')
-#shutil.copyfile('settings.json', build_dir+'/settings.json')
 os.remove('./main.spec')
 
 
