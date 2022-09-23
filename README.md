@@ -33,6 +33,8 @@ python main.py
 #drag+drop images from images/sample_data and process
 ```
 
+Or open in Gitpod: [![Gitpod Ready-to-Code](https://img.shields.io/badge/Gitpod-Ready--to--Code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/alexander-g/Root-Detector)
+
 ***
 
 ### Citation
