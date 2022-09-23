@@ -1,0 +1,8 @@
+
+tasks:
+  - init: |
+      wget https://repo.anaconda.com/miniconda/Miniconda3-py37_4.11.0-Linux-x86_64.sh -O miniconda.sh -nv
+      bash miniconda.sh -b -p /workspace/miniconda
+      rm   miniconda.sh
+      PATH=/workspace/miniconda/bin:${PATH}
+      pip install -r requirements.txt && rm requirements.txt
