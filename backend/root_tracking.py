@@ -103,7 +103,7 @@ def ensure_exclusionmask(input_image_path:str, settings:'backend.Settings') -> n
         if exmask is not None:
             backend.write_as_png(exmaskf, exmask)
     else:
-        exmask = PIL.Image.open(segf).convert('L') / np.float32(255)
+        exmask = PIL.Image.open(exmaskf).convert('L') / np.float32(255)
     return exmask
 
 
