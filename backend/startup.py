@@ -2,6 +2,7 @@ import sys, os, urllib.request, zipfile, subprocess
 #not importing because imports torch internally #FIXME
 #from base.paths import path_to_main_module
 
+assert 'torch' not in sys.modules
 
 WHEEL_URLS = {
     'torch==1.10.1+cpu'     : 'https://download.pytorch.org/whl/cpu/torch-1.10.1%2Bcpu-cp37-cp37m-win_amd64.whl',
@@ -60,11 +61,5 @@ def ensure_torch() -> None:
 
     #not ok, first start, download torch
     download_and_extract_pytorch_libs( os.path.join(root, 'main') )
-    
 
 
-
-if __name__ == '__main__':
-    download_and_extract_pytorch_libs('DELETE_ME_TORCH')
-
-    print('Done')
