@@ -5,6 +5,7 @@ import flask
 
 import backend
 import backend.training
+import backend.settings
 from . import root_detection
 from . import root_tracking
 
@@ -12,9 +13,12 @@ from . import root_tracking
 
 class App(BaseApp):
     def __init__(self, *args, **kw):
+        backend.settings.ensure_pretrained_models()
+        
         super().__init__(*args, **kw)
         if self.is_reloader:
             return
+
 
         self.route('/process_root_tracking', methods=['GET', 'POST'])(self.process_root_tracking)
         self.route('/postprocess_detection/<filename>')(self.postprocess_detection)
@@ -41,6 +45,10 @@ class App(BaseApp):
             fname0 = os.path.join(self.cache_path, data['filename0'])
             fname1 = os.path.join(self.cache_path, data['filename1'])
             result = root_tracking.process(fname0, fname1, self.settings, data)
+        
+        if result == root_tracking.TOO_MANY_ROOTS_ERROR:
+            print('[ERROR]: TOO MANY ROOTS')
+            return flask.Response("TOO_MANY_ROOTS", status=500)
         
         return flask.jsonify({
             'points0':         result['points0'].tolist(),

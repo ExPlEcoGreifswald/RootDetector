@@ -3,7 +3,9 @@ builds
 TESTDATA
 static
 cache
-models
+models/*
+!models/pretrained_models.txt
 tests/logs
 sync_models.py
 venv*
+.deno

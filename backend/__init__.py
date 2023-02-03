@@ -1,3 +1,8 @@
+from backend.startup import ensure_torch
+#needs to be called before the first 'import torch'
+ensure_torch()
+
+
 #needed for upstream
 from base.backend import *
 from . import root_detection as processing

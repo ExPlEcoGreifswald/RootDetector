@@ -4,7 +4,7 @@ import pytest, os, subprocess
 
 class TrackingTest(BaseCase):
     @pytest.mark.slow
-    def __test_basic_tracking_success(self):  #temporarily disabled #TODO: fix and re-enable
+    def test_basic_tracking_success(self):
         self.open_main(static=False)
         
         #open the tracking tab
@@ -17,15 +17,17 @@ class TrackingTest(BaseCase):
         self.send_input_files_from_assets(filenames)
 
         #open one file
+        self.click("a.item:contains('Tracking')")
+        self.sleep(0.5)
         self.click(f'#tracking-filetable label:contains("{filenames[0]}")')
         root_css = f'#tracking-filetable [filename0="{filenames[1]}"]'
 
         #set the right models                      #FIXME: this is very brittle
         self.click("#settings-button")                                              
         self.click("div#settings-active-model")                                          
-        self.click("div#settings-active-model div>:contains('2022-04-19_028a_WM')")    
+        self.click("div#settings-active-model div.item:first-of-type")    
         self.click("div#settings-tracking-model")                                        
-        self.click("div#settings-tracking-model div>:contains('2022-01-10_022_roottracking.stage2')")  
+        self.click("div#settings-tracking-model div.item:first-of-type")  
         self.click("div#settings-ok-button i")
 
         #click on the processing button

@@ -58,21 +58,6 @@ var RootTracking = new function() {
             process_single(filename0, filename1, false, jsondata)
         });
     }
-    
-
-    var parse_filename = function(fname){
-        var splits = fname.split('_')
-        var base   = splits.slice(0,3).join('_')
-        var date   = splits[3];
-        var [a,b,c]    = date.split('.')
-        if(a.length>2)
-            var [y,m,d] = [a,b,c].map(Number)
-        else {
-            var [y,m,d] = [c,b,a].map(Number)
-            y           = y<70? (y+2000) : (y+1900);    //1970-2069
-        }
-        return {base:base, date:new Date(y,m-1,d)}
-    }
 
 
     //called when user clicks on a file table row to open it
@@ -138,8 +123,13 @@ var RootTracking = new function() {
         $dimmer.find('.content.failed').hide()
 
         if(upload_images){
-            await upload_file_to_flask(GLOBAL.files[filename0]);
-            await upload_file_to_flask(GLOBAL.files[filename1]);
+            try {    
+                await upload_file_to_flask(GLOBAL.files[filename0]);
+                await upload_file_to_flask(GLOBAL.files[filename1]);
+            } catch (error) {
+                set_failed(filename0, filename1, error)
+                return;
+            }
         }
 
         console.log(`Sending root tracking request for files ${filename0} and ${filename1}`);
@@ -155,20 +145,16 @@ var RootTracking = new function() {
             set_tracking_data(filename0, filename1, data)
             if(data.success)
                 $dimmer.dimmer('hide');
-            else{
-                $dimmer.find('.content.processing').hide()
-                $dimmer.find('.content.failed').show()
-                $dimmer.dimmer({closable:true});
+            else {
+                set_failed(filename0, filename1, data)
             }
-        }).fail( () => {
-            //FIXME: does not show an error if flask is stopped
-            $dimmer.find('.content.processing').hide()
-            $dimmer.find('.content.failed').show()
-            $dimmer.dimmer({closable:true});
-        } ).always( () => {
+        }).catch( (error) => {
+            set_failed(filename0, filename1, error)
+        } )
+        .always( () => {
             $root.find('polyline.correction-line').remove()
-            delete_image(filename0);
-            delete_image(filename1);
+            //delete_image(filename0);
+            //delete_image(filename1);
         });
     }
 
@@ -196,6 +182,28 @@ var RootTracking = new function() {
         }})
         $root.find('a.download').removeClass('disabled')
         $root.filter('.title').find('label').css('font-weight', 'bold')
+    }
+
+    var set_failed = function(filename0, filename1, data_or_error){
+        const $root   = $(`[filename0="${filename0}"][filename1="${filename1}"]`)
+        const $dimmer = $root.find('.dimmer')
+
+        const too_many_roots = (data_or_error?.responseText == 'TOO_MANY_ROOTS')
+        const no_matches     = (data_or_error?.success === false)
+
+        $dimmer.find('.content.processing').hide()
+        $dimmer.find('.content.failed').show()
+        $dimmer.find('.too-many-roots-message').toggle(too_many_roots)
+        $dimmer.find('.no-matches-message').toggle(no_matches)
+        $dimmer.dimmer({closable:true});
+
+        $root.find('a.download').addClass('disabled')
+        $root.filter('.title').find('label').css('font-weight', 'normal')
+
+        if(too_many_roots)
+            GLOBAL.files[filename0].tracking_results[filename1] = {
+                success: 'TOO_MANY_ROOTS',
+            };
     }
 
 

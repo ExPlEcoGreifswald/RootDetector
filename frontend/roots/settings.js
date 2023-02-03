@@ -17,6 +17,7 @@ RootsSettings = class extends BaseSettings{
         $('#settings-exclusionmask-enable')
             .checkbox({onChange: _ => this.on_exmask_checkbox()})
             .checkbox(settings.exmask_enabled? 'check' : 'uncheck');
+        $('#settings-too-many-roots-input')[0].value = settings.too_many_roots;
         if(models['exclusion_mask'])
             this.update_model_selection_dropdown(
                 models['exclusion_mask'], settings.active_models['exclusion_mask'], $("#settings-exclusionmask-model")
@@ -34,7 +35,10 @@ RootsSettings = class extends BaseSettings{
         GLOBAL.settings.active_models['exclusion_mask'] = $("#settings-exclusionmask-model").dropdown('get value');
         GLOBAL.settings.active_models['tracking']       = $("#settings-tracking-model").dropdown('get value');
 
-        GLOBAL.settings.use_gpu                         = $('#settings-gpu-enable').checkbox('is checked')
+        GLOBAL.settings.use_gpu
+            = $('#settings-gpu-enable').checkbox('is checked')
+        GLOBAL.settings.too_many_roots
+            = Number($("#settings-too-many-roots-input")[0].value);
     }
 
     static on_exmask_checkbox(){

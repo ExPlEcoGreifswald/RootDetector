@@ -3,6 +3,15 @@ import os, shutil, sys, subprocess
 import datetime
 import argparse, zipfile, glob
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--zip', action='store_true')
+parser.add_argument('--prune-torchlibs', action='store_true')
+args = parser.parse_args()
+
+
+
+
+
 os.environ['DO_NOT_RELOAD'] = 'true'
 from backend.app import App
 App().recompile_static(force=True)        #make sure the static/ folder is up to date
@@ -13,9 +22,7 @@ build_dir  = 'builds/%s'%build_name
 rc = subprocess.call(f'''pyinstaller --noupx                            \
               --hidden-import=sklearn.utils._cython_blas     \
               --hidden-import=skimage.io._plugins.tifffile_plugin   \
-              --hidden-import=onnxruntime                           \
               --hidden-import=torchvision                           \
-              --hidden-import=cloudpickle                           \
               --additional-hooks-dir=./hooks                        \
               --distpath {build_dir} main.py''')
 if rc!=0:
@@ -23,23 +30,21 @@ if rc!=0:
     sys.exit(rc)
 
 shutil.copytree('static', build_dir+'/static')
-shutil.copytree('models', build_dir+'/models')
+os.makedirs(build_dir+'/models/')
+shutil.copy('models/pretrained_models.txt', build_dir+'/models/')
 if 'linux' in sys.platform:
     os.symlink('/main/main', build_dir+'/main.run')
 else:
     open(build_dir+'/main.bat', 'w').write(r'SET ROOT_PATH=%~dp0'+'\nmain\main.exe %*'+'\npause')
 shutil.rmtree('./build')
-#shutil.copyfile('settings.json', build_dir+'/settings.json')
 os.remove('./main.spec')
 
+if args.prune_torchlibs:
+    print('Removing PyTorch binaries...')
+    shutil.rmtree(build_dir+'/main/torch/lib')
 
 
 #zip full + zip as update + TODO: upload
-
-parser = argparse.ArgumentParser()
-parser.add_argument('--zip', action='store_true')
-args = parser.parse_args()
-
 if args.zip:
     shutil.rmtree(build_dir+'/cache', ignore_errors=True)
 

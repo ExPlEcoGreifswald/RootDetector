@@ -3,10 +3,15 @@ import torch, torchvision
 import numpy as np
 import scipy.ndimage
 import PIL.Image
+import skimage.morphology
 
 
 import backend
 from backend import GLOBALS
+
+
+class TOO_MANY_ROOTS_ERROR:
+    ...
 
 
 
@@ -16,6 +21,10 @@ def process(filename0, filename1, settings, previous_data:dict=None):
 
     seg0f, seg0 = ensure_segmentation(filename0, settings)
     seg1f, seg1 = ensure_segmentation(filename1, settings)
+    TOO_MANY_ROOTS_THRESHOLD = settings.too_many_roots
+    if should_skip_because_too_many_roots(seg0, seg1, TOO_MANY_ROOTS_THRESHOLD):
+        return TOO_MANY_ROOTS_ERROR
+    
     exmask0     = ensure_exclusionmask(filename0, settings)
     #exmask1     = ensure_exclusionmask(filename1, settings)  #not required
     
@@ -103,7 +112,7 @@ def ensure_exclusionmask(input_image_path:str, settings:'backend.Settings') -> n
         if exmask is not None:
             backend.write_as_png(exmaskf, exmask)
     else:
-        exmask = PIL.Image.open(segf).convert('L') / np.float32(255)
+        exmask = PIL.Image.open(exmaskf).convert('L') / np.float32(255)
     return exmask
 
 
@@ -121,7 +130,6 @@ def paste_exclusionmask(turnovermap_rgba:np.ndarray, exmask:tp.Union[np.ndarray,
 
 
 def skeletonized_turnovermap(gmap):
-    import skimage.morphology
     seg0w = (gmap==1) | (gmap==2)  #warped segmentation 0 = same+decay
     seg1  = (gmap==1) | (gmap==3)  #segmentation 1        = same+growth
     sk0   = skimage.morphology.skeletonize(seg0w)
@@ -170,3 +178,12 @@ def compute_statistics(turnovermap_rgba):
         'kimura_decay':     int( kimura_decay ),
         'kimura_growth':    int( kimura_growth ),
     }
+
+def should_skip_because_too_many_roots(
+    seg0:np.ndarray, 
+    seg1:np.ndarray, 
+    threshold:int
+) -> bool:
+    n_roots0 = skimage.morphology.skeletonize(seg0>0.5).sum()
+    n_roots1 = skimage.morphology.skeletonize(seg1>0.5).sum()
+    return (n_roots0 > threshold) or (n_roots1 > threshold)
