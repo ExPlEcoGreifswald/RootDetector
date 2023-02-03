@@ -1,4 +1,4 @@
-import sys, os, urllib.request, zipfile
+import sys, os, urllib.request, zipfile, subprocess
 #not importing because imports torch internally #FIXME
 #from base.paths import path_to_main_module
 
@@ -8,9 +8,23 @@ WHEEL_URLS = {
     'torch==1.10.1+cu113'   : 'https://download.pytorch.org/whl/cu113/torch-1.10.1%2Bcu113-cp37-cp37m-win_amd64.whl',
 }
 
+def is_nvidia_gpu_present() -> bool:
+    try:
+        gpu_info = subprocess.check_output(
+            'wmic path win32_videocontroller get /all /format:list'
+        )
+        return b'nvidia' in gpu_info.lower()
+    except:
+        return False
+
+def guess_torch_url() -> str:
+    if is_nvidia_gpu_present():
+        return WHEEL_URLS['torch==1.10.1+cu113']
+    else:
+        return WHEEL_URLS['torch==1.10.1+cpu']
+
 def download_and_extract_pytorch_libs(destination:str) -> None:
-    __TEST_TORCH_VERSION = 'torch==1.10.1+cpu'
-    url                  = WHEEL_URLS[__TEST_TORCH_VERSION]
+    url                  = guess_torch_url()
     whl_path             = './cache/torch.whl'
 
     print(f'Downloading PyTorch from {url} ...')
