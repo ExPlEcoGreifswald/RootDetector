@@ -46,6 +46,10 @@ class App(BaseApp):
             fname1 = os.path.join(self.cache_path, data['filename1'])
             result = root_tracking.process(fname0, fname1, self.settings, data)
         
+        if result == root_tracking.TOO_MANY_ROOTS_ERROR:
+            print('[ERROR]: TOO MANY ROOTS')
+            return flask.Response("TOO_MANY_ROOTS", status=500)
+        
         return flask.jsonify({
             'points0':         result['points0'].tolist(),
             'points1':         result['points1'].tolist(),

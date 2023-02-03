@@ -47,6 +47,12 @@
   {{ svg_overlay(name) }}
 {% endmacro %}
 
+{% macro fail_messages(name) %}
+  <h3 class="too-many-roots-message">Skipped: too many roots.</h3>
+  <h3 class="no-matches-message">No matching roots found</h3>
+{% endmacro %}
+
+
 {% macro tracking_item_content() %}
 <!--------- MACRO tracking_item_content() START---------->
 <div class="tracking-content" style="display:none">
@@ -61,7 +67,7 @@
   <div class="image-container">
     {{ base_js_templates.content_image(name="left input",  overlay=tracking_overlays(name="left"), viewcontrols="TrackingViewControls")  | indent(8) }}
     {{ base_js_templates.content_image(name="right input", overlay=tracking_overlays(name="right"), viewcontrols="TrackingViewControls") | indent(8) }}
-    {{ base_js_templates.progress_dimmer() }}
+    {{ base_js_templates.progress_dimmer(fail_extras=fail_messages()) }}
   </div>
 </div>
 <!--------- MACRO tracking_item_content() END---------->

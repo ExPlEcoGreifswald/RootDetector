@@ -124,21 +124,29 @@ RootTrackingDownload = class extends BaseDownload {
 
 
     static csv_data_statistics(filename0, filename1, include_header=true){
-        var stats = GLOBAL.files[filename0].tracking_results[filename1].statistics;
+        const result = GLOBAL.files[filename0].tracking_results[filename1]
+        const stats  = result.statistics ?? {};
+        const status_map = {
+            true                : 'OK',
+            false               : 'WARNING: No matching roots found',
+            'TOO_MANY_ROOTS'    : 'SKIPPED: Too many roots'
+        }
 
-        var header = [
+        const header = [
             'Filename 1',           'Filename 2', 
             'same pixels',          'decay pixels',          'growth pixels',
             'background pixels',    'mask pixels',
             'same skeleton pixels', 'decay skeleton pixels', 'growth skeleton pixels',
             'same kimura length',   'decay kimura length',   'growth kimura length',
+            'status',
         ]
-        var data   = [
+        const data   = [
             filename0,         filename1,    
             stats.sum_same,    stats.sum_decay,    stats.sum_growth,
             stats.sum_negative,stats.sum_exmask,
             stats.sum_same_sk, stats.sum_decay_sk, stats.sum_growth_sk,
             stats.kimura_same, stats.kimura_decay, stats.kimura_growth,
+            status_map[result.success],
         ]
 
         //sanity check
