@@ -1,6 +1,8 @@
 # Root-Detector
 Analysis tool for minirhizotron images
 
+Windows binaries: [Download](https://github.com/alexander-g/Root-Detector/releases/download/v2023-02-03/2023-02-03_16h32m11s_DigIT_RootDetector.zip)
+
 Screenshot:
 
 <img src="images/screenshot.jpg" width="1000">
@@ -33,21 +35,22 @@ python main.py
 #drag+drop images from images/sample_data and process
 ```
 
-Or open in Gitpod: [![Gitpod Ready-to-Code](https://img.shields.io/badge/Gitpod-Ready--to--Code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/alexander-g/Root-Detector)
-
 ***
 
 ### Citation
-Source code for publication (in review):
+Source code for publication:
 ```
 Peters, B. et al. "As good as but much more efficient and reproducible 
 than human experts in detecting plant roots in minirhizotron images: 
-The Convolutional Neural Network RootDetector" (2022)
+The Convolutional Neural Network RootDetector" (2023)
+http://doi.org/10.1038/s41598-023-28400-x
 ```
+
 
 Root tracking:
 ```
 Alexander Gillert, Bo Peters, Uwe Freiherr von Lukas, Jürgen Kreyling and Gesche Blume-Werry. 
 "Tracking Growth and Decay of Plant Roots in Minirhizotron Images." 
-Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision (WACV), 2023 (accepted)
+Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision (WACV), 2023
+https://doi.org/10.1109/WACV56688.2023.00369
 ```
