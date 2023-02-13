@@ -1,0 +1,42 @@
+{% import   'base/js_templates.html'  as base_js_templates %}
+{% import   'base/content_menu.html'  as base_content_menu %}
+
+{% macro skeleton_checkbox() %}
+<div class="ui item disabled checkbox skeletonized-checkbox">
+    <input type="checkbox">
+    <label>Skeletonized</label>
+</div>
+{% endmacro %}
+
+
+
+{% macro roots_filetable_content(app)%}
+<div class="filetable-content" style="display:none">
+    {{ base_content_menu.content_menu(
+            callback_on_process        = app+".Detection.on_process_image",
+            callback_apply_corrections = None,
+            callback_new_box           = None,
+            callback_download          = app+".Download.on_single_item_download_click",
+            edit_segmentation_item     = None,
+            view_menu_kwargs           = {
+                'show_results_checkbox': True,
+                'extras': skeleton_checkbox()
+            }
+    ) | indent }}
+
+    <div class="image-container">
+        {{ base_js_templates.content_image(
+            name           = "input",  
+            overlay        = base_js_templates.image_overlay("input"),
+            viewcontrols   = app+".ViewControls"
+          ) | indent(8) }}
+        {{ base_js_templates.progress_dimmer() }}
+    </div>
+</div>
+{% endmacro %}
+
+
+{% macro filetable_row_template(app) %}
+    {{ base_js_templates.filetable_row_template(app, content=roots_filetable_content) }}
+{% endmacro %}
+

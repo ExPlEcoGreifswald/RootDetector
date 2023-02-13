@@ -1,4 +1,11 @@
 __pycache__
 builds
 TESTDATA
-models
+static
+cache
+models/*
+!models/pretrained_models.txt
+tests/logs
+sync_models.py
+venv*
+.deno
