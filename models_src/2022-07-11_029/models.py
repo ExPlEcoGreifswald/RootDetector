@@ -88,14 +88,14 @@ class UNet(torch.nn.Module):
             image = self.load_image(image)
         
         imageshape = image.shape
-        patches = datasets.slice_into_patches_with_overlap(image, 1024, slack=32)
+        patches = datasets.slice_into_patches_with_overlap(image, patchsize=1280, slack=128)
         with torch.no_grad():
             outputpatches = []
             for patch in patches:
                 x = torchvision.transforms.ToTensor()(patch)
-                y = self(x[None]).cpu()[0,0]
+                y = self.eval()(x[None]).cpu()[0,0]
                 outputpatches += [y.numpy()]
-        output = datasets.stitch_overlapping_patches(outputpatches, imageshape, slack=32)
+        output = datasets.stitch_overlapping_patches(outputpatches, imageshape, slack=128)
         if threshold is not None:
             output = (output > threshold)*1
         return output
