@@ -96,7 +96,7 @@ def stitch_overlapping_patches(patches, imageshape, slack=32, out=None):
                                     [-halfslack]*(grid.shape[1]-1)+[imageshape[1]], indexing='ij' ), axis=-1 )
     d  = np.concatenate([d0,d1], axis=-1)
     if out is None:
-        out = np.zeros(imageshape[:2]+patches[0].shape[2:])
+        out = np.zeros(imageshape[:2]+patches[0].shape[2:], dtype=patches[0].dtype)
     for patch,gi,di in zip(patches, d.reshape(-1,4), (grid+d).reshape(-1,4)):
         out[di[0]:di[2], di[1]:di[3]] = patch[gi[0]:gi[2], gi[1]:gi[3]]
     return out
