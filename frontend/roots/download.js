@@ -91,35 +91,25 @@ RootTrackingDownload = class extends BaseDownload {
         return zipdata;
     }
 
-    //override
-    static on_download_all(event){
-        var filenames          = Object.keys(GLOBAL.files)
-        var filenames_combined = []
-        var filenames_pairs    = []
-        for(var filename0 of filenames){
-            var tracking_results = GLOBAL.files[filename0].tracking_results
-            if(tracking_results == undefined)
+    static async on_download_all(event) {
+        //TODO: show spinner/progress
+        const filenames  = Object.keys(GLOBAL.files)
+        const file_pairs = []
+        for(const filename0 of filenames) {
+            const tracking_results = GLOBAL.files[filename0].tracking_results
+            if( tracking_results == undefined )
                 continue;
-            for(var filename1 of Object.keys(tracking_results))
-                if(Object.keys(tracking_results[filename1]).length>0){
-                    filenames_combined.push(`${filename0}.${filename1}`)
-                    filenames_pairs.push([filename0, filename1])
+            
+            for(const filename1 of Object.keys(tracking_results)){
+                if(Object.keys(tracking_results[filename1]).length > 0){
+                    file_pairs.push([filename0, filename1])
                 }
+            }
         }
 
-        var zipdata = this.zipdata_for_files(filenames_combined)
-        var combined_csv = ''
-        for(var i in filenames_combined){
-            var single_csv = this.csv_data_statistics(...filenames_pairs[i], i==0)
-            if(single_csv!=undefined)
-                combined_csv += single_csv;
-        }
-        if(combined_csv.length > 0)
-            zipdata['statistics.csv'] = combined_csv;
-
-        if(Object.keys(zipdata).length==0)
-            return
-        download_zip('tracking_results.zip', zipdata)
+        const postdata = JSON.stringify({file_pairs:file_pairs})
+        const result   = await $.post('/compile_tracking_results', postdata)
+        downloadURI('tracking_results.zip', url_for_image(result))
     }
 
 

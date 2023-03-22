@@ -22,6 +22,7 @@ class App(BaseApp):
 
         self.route('/process_root_tracking', methods=['GET', 'POST'])(self.process_root_tracking)
         self.route('/postprocess_detection/<filename>')(self.postprocess_detection)
+        self.route('/compile_tracking_results', methods=['POST'])(self.compile_tracking_results)
 
     def postprocess_detection(self, filename):
         #FIXME: code duplication
@@ -63,6 +64,10 @@ class App(BaseApp):
             'segmentation_model' : result['segmentation_model'],
             'statistics'         : result['statistics'],
         })
+    
+    def compile_tracking_results(self):
+        file_pairs = flask.request.get_json(force=True)['file_pairs']
+        return root_tracking.compile_results_into_zip(file_pairs)
 
     #override    #TODO: unify
     def training(self):
