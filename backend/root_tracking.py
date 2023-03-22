@@ -1,4 +1,4 @@
-import os, typing as tp
+import os, typing as tp, zipfile, json
 import torch, torchvision
 import numpy as np
 import scipy.ndimage
@@ -8,7 +8,7 @@ import skimage.morphology
 
 import backend
 from backend import GLOBALS
-
+from backend import paths
 
 class TOO_MANY_ROOTS_ERROR:
     ...
@@ -23,10 +23,13 @@ def process(filename0, filename1, settings, previous_data:dict=None):
     seg1f, seg1 = ensure_segmentation(filename1, settings)
     TOO_MANY_ROOTS_THRESHOLD = settings.too_many_roots
     if should_skip_because_too_many_roots(seg0, seg1, TOO_MANY_ROOTS_THRESHOLD):
+        cache_output_for_download(filename0, filename1, TOO_MANY_ROOTS_ERROR, {})
         return TOO_MANY_ROOTS_ERROR
     
     exmask0     = ensure_exclusionmask(filename0, settings)
     #exmask1     = ensure_exclusionmask(filename1, settings)  #not required
+
+    outputname  = f'{filename0}.{os.path.basename(filename1)}'
     
     if previous_data is None:  #FIXME: better condition?
         img0    = torchvision.transforms.ToTensor()(PIL.Image.open(filename0))
@@ -52,7 +55,7 @@ def process(filename0, filename1, settings, previous_data:dict=None):
         }
         corrections = np.array(previous_data['corrections']).reshape(-1,4)
         if len(corrections)>0:
-            imap   = np.load(f'{filename0}.{os.path.basename(filename1)}.imap.npy').astype('float32')
+            imap   = np.load(f'{outputname}.imap.npy').astype('float32')
             corrections_p0 = corrections[:,:2][:,::-1] #xy to yx
             corrections_p1 = corrections[:,2:][:,::-1]
             corrections_p0 = np.stack([
@@ -69,7 +72,7 @@ def process(filename0, filename1, settings, previous_data:dict=None):
         #dummy interpolation map
         imap    = matchmodel.interpolation_map(np.zeros([1,2]), np.zeros([1,2]), seg0.shape)
     
-    np.save(f'{filename0}.{os.path.basename(filename1)}.imap.npy', imap.astype('float16'))  #f16 to save space & time
+    np.save(f'{outputname}.imap.npy', imap.astype('float16'))  #f16 to save space & time
 
     warped_seg0    = matchmodel.warp(seg0, imap)
     warped_exmask0 = None
@@ -78,8 +81,8 @@ def process(filename0, filename1, settings, previous_data:dict=None):
     gmap           = matchmodel.create_growth_map_rgba( warped_seg0>0.5, seg1>0.5, )
     gmap           = paste_exclusionmask(gmap, warped_exmask0)
 
-    output_file_rgb  = f'{filename0}.{os.path.basename(filename1)}.growthmap.png'
-    output_file_rgba = f'{filename0}.{os.path.basename(filename1)}.growthmap_rgba.png'
+    output_file_rgb  = f'{outputname}.growthmap.png'
+    output_file_rgba = f'{outputname}.growthmap_rgba.png'
     PIL.Image.fromarray(gmap).convert('RGB').save( output_file_rgb )
     PIL.Image.fromarray(gmap).save( output_file_rgba )
 
@@ -89,7 +92,8 @@ def process(filename0, filename1, settings, previous_data:dict=None):
     output['segmentation1']  = seg1f
 
     output['statistics']     = compute_statistics(gmap)
-
+    
+    cache_output_for_download(filename0, filename1, success, output)
     return output
 
 
@@ -187,3 +191,129 @@ def should_skip_because_too_many_roots(
     n_roots0 = skimage.morphology.skeletonize(seg0>0.5).sum()
     n_roots1 = skimage.morphology.skeletonize(seg1>0.5).sum()
     return (n_roots0 > threshold) or (n_roots1 > threshold)
+
+
+def cache_output_for_download(
+    filename0: str,
+    filename1: str,
+    success:   tp.Union[bool, TOO_MANY_ROOTS_ERROR],
+    output:    tp.Dict[str, tp.Any],
+) -> None:
+    dirname     =   paths.get_cache_path()
+    filename0   =   os.path.basename(filename0)
+    filename1   =   os.path.basename(filename1)
+    outputname  =   os.path.join(dirname, f'{filename0}.{filename1}')
+    
+    open(f'{outputname}.csv', 'w').write(
+        statistics_to_csv(
+            output.get('statistics', {}),
+            filename0, 
+            filename1, 
+            success
+        )
+    )
+
+    if success == TOO_MANY_ROOTS_ERROR:
+        return
+
+    open(f'{outputname}.json', 'w').write(
+        json.dumps({
+            'filename0'             : filename0,
+            'filename1'             : filename1,
+            'points0'               : output['points0'].tolist(),
+            'points1'               : output['points1'].tolist(),
+            'n_matched_points'      : output['n_matched_points'],
+            'tracking_model'        : output['tracking_model'],
+            'segmentation_model'    : output['segmentation_model'],
+        })
+    )
+
+def statistics_to_csv(
+    stats:     tp.Dict[str, tp.Any],
+    filename0: str,
+    filename1: str,
+    success:   tp.Union[bool, TOO_MANY_ROOTS_ERROR],
+    include_header=True
+) -> str:
+    '''Convert statistics from Python dicts as computed in process() to CSV'''
+    header = [
+        'Filename 1',           'Filename 2', 
+        'same pixels',          'decay pixels',          'growth pixels',
+        'background pixels',    'mask pixels',
+        'same skeleton pixels', 'decay skeleton pixels', 'growth skeleton pixels',
+        'same kimura length',   'decay kimura length',   'growth kimura length',
+        'status',
+    ]
+    status_map = {
+        True                 : 'OK',
+        False                : 'WARNING: No matching roots found',
+        TOO_MANY_ROOTS_ERROR : 'SKIPPED: Too many roots'
+    }
+
+    data = [
+        filename0,                    filename1,    
+        stats.get('sum_negative',''), stats.get('sum_exmask',''),
+        stats.get('sum_same',''),     stats.get('sum_decay',''),    stats.get('sum_growth',''),
+        stats.get('sum_same_sk',''),  stats.get('sum_decay_sk',''), stats.get('sum_growth_sk',''),
+        stats.get('kimura_same',''),  stats.get('kimura_decay',''), stats.get('kimura_growth',''),
+        status_map[success],
+    ]
+
+    #sanity check
+    if len(header) != len(data):
+        print('[ERROR] CSV data length mismatch:', header, data)
+        return
+    
+    return ';\n'.join([
+        ','.join(header) if include_header else '',
+        ','.join(map(str,data))
+    ])
+
+
+def collect_result_files(filename0:str, filename1:str) -> tp.Union[tp.List[str], None]:
+    cache_path = paths.get_cache_path()
+    files = [
+        os.path.join(cache_path, filename0+'.segmentation.cache.png'),
+        os.path.join(cache_path, filename1+'.segmentation.cache.png'),
+        os.path.join(cache_path, f'{filename0}.{filename1}.growthmap.png'),
+        os.path.join(cache_path, f'{filename0}.{filename1}.csv'),
+        os.path.join(cache_path, f'{filename0}.{filename1}.json'),
+
+    ]
+    if all(map(os.path.exists, files)):
+        return files
+    #else: return None
+
+def combine_csv_statistics(file_pairs:tp.Tuple[str, str]) -> str:
+    cache_path         = paths.get_cache_path()
+    csv_combined_lines = []
+    for i, (filename0, filename1) in enumerate(file_pairs):
+        csv_file   = os.path.join(cache_path, f'{filename0}.{filename1}.csv')
+        lines      = open(csv_file, 'r').read().strip().split('\n')
+        if i==0:
+            csv_combined_lines.append(lines[0])
+        csv_combined_lines.append(lines[1])
+    return '\n'.join(csv_combined_lines)
+
+    
+
+def compile_results_into_zip(file_pairs:tp.Tuple[str,str]) -> str:
+    '''Create a zip file containing the processed tracking results.
+       (Doing this here in Python because frontend passes out if too many files)'''
+    
+    cache_path = paths.get_cache_path()
+    resultpath = os.path.join(cache_path, 'tracking_results.zip')
+    with zipfile.ZipFile(resultpath, 'w') as resultzip:
+        for filename0, filename1 in file_pairs:
+            outputname   = f'{filename0}.{filename1}'
+            result_files = collect_result_files(filename0, filename1)
+            if result_files is None:
+                print(f'[ERROR] could not find tracking results for {outputname}')
+                continue
+
+            for f in result_files:
+                resultzip.write(f, os.path.join(outputname, os.path.basename(f)))
+        combined_stats = combine_csv_statistics(file_pairs)
+        resultzip.writestr('statistics.csv', combined_stats)
+    return os.path.basename(resultpath)
+

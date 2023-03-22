@@ -1,5 +1,5 @@
-detection/2022-04-19_028a_WM.pt.zip                : https://www.dropbox.com/s/p2mlxhaz0diyjvp/2022-04-19_028a_WM.pt.zip?dl=1
-detection/2022-04-19_028b_beech.pt.zip             : https://www.dropbox.com/s/9o7kb65s1lx8i2j/2022-04-19_028b_beech.pt.zip?dl=1
-exclusion_mask/2022-07-14_028c_WM_exmask.pt.zip    : https://www.dropbox.com/s/u6zg2q3t668xih3/2022-07-14_028c_WM_exmask.pt.zip?dl=1
-exclusion_mask/2022-04-19_028c_beech_exmask.pt.zip : https://www.dropbox.com/s/aldfc6o3r3m931m/2022-04-19_028c_beech_exmask.pt.zip?dl=1
+detection/2023-03-22_028a_WM.pt.zip                : https://github.com/ExPlEcoGreifswald/RootDetector/releases/download/assets_v2023-03-22/2023-03-22_028a_WM.pt.zip
+detection/2023-03-22_028b_beech.pt.zip             : https://github.com/ExPlEcoGreifswald/RootDetector/releases/download/assets_v2023-03-22/2023-03-22_028b_beech.pt.zip
+exclusion_mask/2023-03-22_028c_WM_exmask.pt.zip    : https://github.com/ExPlEcoGreifswald/RootDetector/releases/download/assets_v2023-03-22/2023-03-22_028c_WM_exmask.pt.zip
+exclusion_mask/2023-03-22_028c_beech_exmask.pt.zip : https://github.com/ExPlEcoGreifswald/RootDetector/releases/download/assets_v2023-03-22/2023-03-22_028c_beech_exmask.pt.zip
 tracking/2022-01-10_030_roottracking.stage2.pt.zip : https://www.dropbox.com/s/kmaorewczoh4g6k/2022-01-10_030_roottracking.stage2.pt.zip?dl=1
