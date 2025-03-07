@@ -3,6 +3,8 @@ Analysis tool for minirhizotron images
 
 Windows binaries: [Download](https://github.com/alexander-g/Root-Detector/releases/download/v2023-02-03/2023-02-03_16h32m11s_DigIT_RootDetector.zip)
 
+Guide: [Download](https://github.com/ExPlEcoGreifswald/RootDetector/edit/main/AI%20Analysis%20of%20Minirhizotron%20Imagery%20Using%20RootDetector.pdf)
+
 Screenshot:
 
 <img src="images/screenshot.jpg" width="1000">
