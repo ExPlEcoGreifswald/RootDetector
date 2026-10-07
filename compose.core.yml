@@ -1,0 +1,67 @@
+name: rootdetector-core
+
+x-rootdetector-core: &rootdetector-core
+  build:
+    context: .
+    dockerfile: docker/core/Dockerfile
+  image: rootdetector-core:legacy
+  working_dir: /workspace
+  environment:
+    INSTANCE_PATH: /workspace
+    ROOT_PATH: /workspace
+    PYTHONPATH: /workspace
+    ROOTDETECTOR_ALLOW_CONTAINER_BIND: "1"
+  volumes:
+    - .:/workspace
+
+services:
+  app:
+    <<: *rootdetector-core
+    command:
+      - python
+      - -c
+      - >-
+        from backend.app import App;
+        App().run(parse_args=False, host='0.0.0.0', port=5000, debug=False)
+    ports:
+      - "127.0.0.1:5000:5000"
+
+  test-fast:
+    <<: *rootdetector-core
+    command:
+      - sh
+      - -c
+      - >-
+        mkdir -p /workspace/cache &&
+        python -m pytest -q
+        tests/testcases/test_cli.py
+        tests/testcases/test_evaluation.py
+        tests/testcases/test_model_downloads.py
+        tests/testcases/test_postprocessing.py
+        tests/testcases/test_pipeline.py
+        tests/testcases/test_pipeline_api.py
+        tests/testcases/test_security.py
+        tests/testcases/test_settings_persistence.py
+        tests/testcases/test_segmentation_cache.py
+        tests/testcases/test_startup.py
+        tests/testcases/test_training.py
+        tests/testcases/test_training_jobs.py
+        tests/testcases/test_training_options.py
+        tests/testcases/test_tracking_csv.py
+        tests/testcases/test_tracking_masks.py
+        tests/testcases/test_tracking_matcher.py
+        tests/testcases/test_windows_followup_templates.py
+
+  model-fetch:
+    <<: *rootdetector-core
+    command: ["python", "fetch_pretrained_models.py"]
+
+  test-smoke:
+    <<: *rootdetector-core
+    command:
+      - sh
+      - -c
+      - >-
+        mkdir -p /workspace/cache &&
+        python -m pytest -q -m real_model
+        tests/testcases/test_pipeline_real_model.py

@@ -3,6 +3,7 @@ import backend.cli
 import zipfile, tempfile, os, pathlib
 import PIL.Image
 import numpy as np
+import types
 
 
 def test_no_ext_file_basename():
@@ -128,4 +129,42 @@ def test_reformat_outputfilename():
     assert x == tmpdir.name+'/file(2).zip'
 
 
+def test_cli_run_propagates_command_exit_code(monkeypatch):
+    args = types.SimpleNamespace(evaluate=False, process=True, training=False)
+    parser = types.SimpleNamespace(parse_args=lambda: args)
+    monkeypatch.setattr(backend.cli.CLI, 'create_parser', lambda: parser)
+    monkeypatch.setattr(backend.cli.CLI, 'process_cli_args', lambda _args: 2)
+    assert backend.cli.CLI.run() == 2
+
+
+def test_cli_run_returns_none_when_no_command_was_requested(monkeypatch):
+    args = types.SimpleNamespace(evaluate=False, process=False, training=False)
+    parser = types.SimpleNamespace(parse_args=lambda: args)
+    monkeypatch.setattr(backend.cli.CLI, 'create_parser', lambda: parser)
+    assert backend.cli.CLI.run() is None
+
+
+def test_cli_processing_keyboard_interrupt_returns_130(tmp_path, monkeypatch):
+    image = tmp_path / 'input.png'
+    image.write_bytes(b'fixture')
+
+    class Settings:
+        models = {}
+        exmask_enabled = False
+
+    args = types.SimpleNamespace(
+        input=pathlib.Path(str(image)),
+        output=pathlib.Path(str(tmp_path / 'output.zip')),
+        model=None,
+        exclusionmask_model=None,
+        no_exclusionmask=True,
+    )
+    monkeypatch.setattr(backend.cli.backend.settings, 'Settings', Settings)
+    monkeypatch.setattr(backend.cli, 'setup_cache', lambda *_args: None)
+    monkeypatch.setattr(
+        backend.cli.backend.root_detection,
+        'process_image',
+        lambda *_args: (_ for _ in ()).throw(KeyboardInterrupt()),
+    )
+    assert backend.cli.CLI.process(args) == 130
 

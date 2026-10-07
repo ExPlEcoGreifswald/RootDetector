@@ -1,5 +1,5 @@
-detection/2023-03-22_028a_WM.pt.zip                : https://github.com/ExPlEcoGreifswald/RootDetector/releases/download/assets_v2023-03-22/2023-03-22_028a_WM.pt.zip
-detection/2023-03-22_028b_beech.pt.zip             : https://github.com/ExPlEcoGreifswald/RootDetector/releases/download/assets_v2023-03-22/2023-03-22_028b_beech.pt.zip
-exclusion_mask/2023-03-22_028c_WM_exmask.pt.zip    : https://github.com/ExPlEcoGreifswald/RootDetector/releases/download/assets_v2023-03-22/2023-03-22_028c_WM_exmask.pt.zip
-exclusion_mask/2023-03-22_028c_beech_exmask.pt.zip : https://github.com/ExPlEcoGreifswald/RootDetector/releases/download/assets_v2023-03-22/2023-03-22_028c_beech_exmask.pt.zip
-tracking/2022-01-10_030_roottracking.stage2.pt.zip : https://www.dropbox.com/s/kmaorewczoh4g6k/2022-01-10_030_roottracking.stage2.pt.zip?dl=1
+detection/2023-03-22_028a_WM.pt.zip                : https://github.com/ExPlEcoGreifswald/RootDetector/releases/download/assets_v2023-03-22/2023-03-22_028a_WM.pt.zip                : 844d5617c725eb8ab60795d761f42181e523db5b70c2c758d60ef33435bdf92d
+detection/2023-03-22_028b_beech.pt.zip             : https://github.com/ExPlEcoGreifswald/RootDetector/releases/download/assets_v2023-03-22/2023-03-22_028b_beech.pt.zip             : af2152af2be86c5347018468ae283dcdba607abd8fa31b243469c18797a99c3d
+exclusion_mask/2023-03-22_028c_WM_exmask.pt.zip    : https://github.com/ExPlEcoGreifswald/RootDetector/releases/download/assets_v2023-03-22/2023-03-22_028c_WM_exmask.pt.zip    : 2055c8a92e25ba461a6f823fb87244e358cc2d298691997fdf0e0c871b2e328d
+exclusion_mask/2023-03-22_028c_beech_exmask.pt.zip : https://github.com/ExPlEcoGreifswald/RootDetector/releases/download/assets_v2023-03-22/2023-03-22_028c_beech_exmask.pt.zip : 8f2e94d4bbb98d971cdbc9f1d0fafcf4ae65841d1d47dad00f611a3ad7814f99
+tracking/2022-01-10_030_roottracking.stage2.pt.zip : https://www.dropbox.com/s/kmaorewczoh4g6k/2022-01-10_030_roottracking.stage2.pt.zip?dl=1                     : 9d443319682782700a8a35b21584fa10f55aca04aa0bd348b10bd727e2d840cf

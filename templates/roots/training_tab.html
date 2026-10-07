@@ -2,7 +2,8 @@
 
 {% macro number_of_files_infobox() %}
 <div class="ui hidden message" id="training-number-of-files-info-message">
-  <p>Number of training files: <b id="training-number-of-files-info-label">xxx</b></p>
+  <p>Imported training labels: <b id="training-number-of-files-info-label">0</b></p>
+  <p id="training-label-file-list">No annotations imported yet.</p>
 </div>
 {% endmacro %}
 
@@ -13,8 +14,9 @@
     <!--<h4 class="ui dividing header">Training options</h4>-->
     <div class="field" id="training-model-type-field">
         <div class="field">
-            <label>Model Type</label>
-            <div class="ui dropdown selection" id="training-model-type">
+            <label id="training-model-type-label">Model Type</label>
+            <div class="ui dropdown selection" id="training-model-type" role="combobox"
+                 tabindex="0" aria-labelledby="training-model-type-label" aria-expanded="false">
                 <input type="hidden" name="active-model">
                 <i class="dropdown icon"></i>
                 <div class="default text"></div>
@@ -29,7 +31,23 @@
 
     <div class="ui divider"></div>
 
-    {{ base_training_tab.lr_epochs_fields(label="Hyperparameters") }}
+    <div class="field" id="training-learning-rate-field">
+      <label for="training-learning-rate">Learning rate</label>
+      <div class="ui input">
+        <input type="number" step="0.0001" min="0.00001" value="0.0001"
+               id="training-learning-rate" aria-describedby="training-learning-rate-help">
+      </div>
+    </div>
+    <div class="field" id="training-number-of-epochs-field">
+      <label for="training-number-of-epochs">Number of epochs</label>
+      <div class="ui input">
+        <input type="number" step="1" min="1" value="10" id="training-number-of-epochs">
+      </div>
+    </div>
+
+    <p class="ui tiny info message" id="training-learning-rate-help">
+      The selected learning rate is used exactly as entered.
+    </p>
     
     <div class="ui divider"></div>
 
@@ -37,9 +55,22 @@
 
     {{ number_of_files_infobox() }}
 
+    <p>Load original images, then use <strong>Files → Load Annotations</strong> to add a small, reviewed label set. Detection results and an exported results ZIP are predictions, not ground truth.</p>
+    <div class="field">
+      <div class="ui checkbox">
+        <input type="checkbox" id="training-reviewed-labels-checkbox"
+               onchange="{{ trainingmodule }}.update_number_of_training_files_info()">
+        <label for="training-reviewed-labels-checkbox">I confirm that every imported label selected for this training run was independently reviewed and corrected where needed.</label>
+      </div>
+    </div>
+
     <div class="ui divider"></div>
 
-    {{ base_training_tab.start_training_button(trainingmodule) }}
+    <button type="button" class="ui violet basic fluid button" id="start-training-button"
+            onclick="{{ trainingmodule }}.on_start_training()" title="Train only with reviewed annotations" disabled aria-disabled="true">
+      <i class="shuffle icon" aria-hidden="true"></i>
+      Start Training
+    </button>
 </div>
 <script>
     $('#training-model-type')

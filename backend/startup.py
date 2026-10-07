@@ -10,13 +10,41 @@ WHEEL_URLS = {
 }
 
 def is_nvidia_gpu_present() -> bool:
-    try:
-        gpu_info = subprocess.check_output(
-            'wmic path win32_videocontroller get /all /format:list'
-        )
-        return b'nvidia' in gpu_info.lower()
-    except:
-        return False
+    """Detect NVIDIA hardware without depending on deprecated WMIC alone."""
+    commands = [
+        [
+            'nvidia-smi',
+            '--query-gpu=name',
+            '--format=csv,noheader',
+        ],
+        [
+            'powershell',
+            '-NoProfile',
+            '-NonInteractive',
+            '-Command',
+            '(Get-CimInstance Win32_VideoController | '
+            'Select-Object -ExpandProperty Name) -join "`n"',
+        ],
+        [
+            'wmic',
+            'path',
+            'win32_videocontroller',
+            'get',
+            'name',
+        ],
+    ]
+    for command in commands:
+        try:
+            gpu_info = subprocess.check_output(
+                command,
+                stderr=subprocess.STDOUT,
+                timeout=10,
+            )
+        except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
+            continue
+        if b'nvidia' in gpu_info.lower():
+            return True
+    return False
 
 def guess_torch_url() -> str:
     if is_nvidia_gpu_present():
@@ -61,5 +89,4 @@ def ensure_torch() -> None:
 
     #not ok, first start, download torch
     download_and_extract_pytorch_libs( os.path.join(root, 'main') )
-
 

@@ -91,15 +91,12 @@ class TrainingTask(torch.nn.Module):
                 self.callback.on_epoch_end(e)
         except KeyboardInterrupt:
             print('\nInterrupted')
-        except Exception as e:
-            #prevent the exception getting to ipython (memory leak)
-            import traceback
-            traceback.print_exc()
-            return e
+            return 'cancelled'
         finally:
             self.zero_grad(set_to_none=True)
             self.eval().cpu().requires_grad_(False)
             torch.cuda.empty_cache()
+        return 'cancelled' if self.__class__.stop_requested else 'completed'
      
     #XXX: class method to avoid boiler code
     @classmethod

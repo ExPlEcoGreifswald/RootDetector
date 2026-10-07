@@ -1,3 +1,6 @@
+import subprocess
+
+
 BaseCase = __import__('base_case').BaseCase
 
 
@@ -53,7 +56,6 @@ class LoadResultsTest(BaseCase):
         #make sure the row label is bold to indicate that this file is processed
         script = f''' return $('{root_css} label').css('font-weight') '''
         assert int(self.execute_script(script)) > 500
-
 
 
 

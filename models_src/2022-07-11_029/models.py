@@ -116,8 +116,9 @@ class UNet(torch.nn.Module):
             ds_valid = datasets.Dataset(imagefiles_valid, targetfiles_valid, augment=False, colors=self.colors, patchsize=5000, **ds_kwargs)  #full sized images
             ld_valid = ds_valid.create_dataloader(batch_size=1, shuffle=False, num_workers=num_workers)
         self.requires_grad_(True)
-        task.fit(ld_train, ld_valid, epochs, **fit_kwargs)
+        result = task.fit(ld_train, ld_valid, epochs, **fit_kwargs)
         self.eval().cpu().requires_grad_(False)
+        return result
 
     def stop_training(self):
         traininglib.SegmentationTask.request_stop()
@@ -193,4 +194,3 @@ def mobilenet3l_backbone(pretrained:bool):
     backbone = IntermediateLayerGetter(base, return_layers)
     channels = [16, 24, 40, 80, 960]
     return backbone, channels
-

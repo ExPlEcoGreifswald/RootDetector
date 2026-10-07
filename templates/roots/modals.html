@@ -1,15 +1,20 @@
 
 {% macro modal_settings() %}
 <!-- Settings -->
-<div class="ui tiny modal" id="settings-dialog">
-    <i class="close icon"></i>
-    <div class="header"> Settings </div>
+<div class="ui tiny modal" id="settings-dialog" role="dialog" aria-modal="true"
+     aria-labelledby="settings-dialog-title">
+    <button type="button" class="ui icon close button" aria-label="Close settings"
+            title="Close settings">
+      <i class="close icon" aria-hidden="true"></i>
+    </button>
+    <div class="header" id="settings-dialog-title"> Settings </div>
   
     <div class="ui form content">
       
       <div class="field">
-        <label>Root detection model</label>
-        <div class="ui dropdown selection" id="settings-active-model">
+        <label id="settings-active-model-label">Root detection model</label>
+        <div class="ui dropdown selection" id="settings-active-model" role="combobox"
+             tabindex="0" aria-labelledby="settings-active-model-label" aria-expanded="false">
           <input type="hidden" name="active-model">
           <i class="dropdown icon"></i>
           <div class="default text">Segmentation model</div>
@@ -19,19 +24,20 @@
           </div>
         </div>
       </div>
-  
+
       <div class="ui divider"></div>
       <div class="field">
         <label>Exclusion mask</label>
         <div class="ui toggle checkbox" id="settings-exclusionmask-enable">
-          <input type="checkbox">
-          <label>Enable detection of foreign objects (e.g. tape)</label>
+          <input type="checkbox" id="settings-exclusionmask-enable-input">
+          <label for="settings-exclusionmask-enable-input">Enable detection of foreign objects (e.g. tape)</label>
         </div>
       </div>
   
       <div class="field" id="settings-exclusionmask-model-field" style="display:none">
-        <label>Exclusion mask model</label>
-        <div class="ui dropdown selection" id="settings-exclusionmask-model">
+        <label id="settings-exclusionmask-model-label">Exclusion mask model</label>
+        <div class="ui dropdown selection" id="settings-exclusionmask-model" role="combobox"
+             tabindex="0" aria-labelledby="settings-exclusionmask-model-label" aria-expanded="false">
           <input type="hidden" name="active-model">
           <i class="dropdown icon"></i>
           <div class="default text">Exclusion mask model</div>
@@ -41,11 +47,12 @@
           </div>
         </div>
       </div>
-  
+
       <div class="ui divider"></div>
       <div class="field" id="settings-tracking-model-field">
-        <label>Root tracking model</label>
-        <div class="ui dropdown selection" id="settings-tracking-model">
+        <label id="settings-tracking-model-label">Root tracking model</label>
+        <div class="ui dropdown selection" id="settings-tracking-model" role="combobox"
+             tabindex="0" aria-labelledby="settings-tracking-model-label" aria-expanded="false">
           <input type="hidden" name="active-model">
           <i class="dropdown icon"></i>
           <div class="default text">Root tracking model</div>
@@ -57,9 +64,10 @@
       </div>
 
       <div class="field">
-        <label></label>
+        <label for="settings-too-many-roots-input">Root threshold for skipping tracking</label>
         <div class="ui right labeled input" id="settings-too-many-roots">
-          <input type="number" step="10000" min="10000" style="width: 5ch;" value="100000" id='settings-too-many-roots-input'>
+          <input type="number" step="10000" min="10000" style="width: 5ch;" value="100000"
+                 id="settings-too-many-roots-input" title="Skip tracking when either skeleton exceeds this pixel count">
           <div class="ui basic label" style="width:10%;"> px </div>
           <label style="padding:10px; width:70%;">Skip processing if too many roots detected</label>
         </div>
@@ -77,25 +85,87 @@
             <p>Available GPU: <span id="settings-gpu-name">XXX</span></p>
           </div>
           <div class="ui toggle checkbox" id="settings-gpu-enable">
-            <input type="checkbox">
-            <label>Enable processing on the GPU</label>
+            <input type="checkbox" id="settings-gpu-enable-input">
+            <label for="settings-gpu-enable-input">Enable processing on the GPU</label>
           </div>
         </div>
       </div>
 
       <div class="ui divider"></div>
-
-  
-     <div class="actions">
-        <div class="ui negative button">
-          Cancel
-        </div>
-        <div class="ui positive right labeled icon button" id="settings-ok-button">
-          Save
-          <i class="checkmark icon"></i>
-        </div>
-      </div>
+    </div>
+    <div class="actions">
+      <button type="button" class="ui negative button" title="Close without saving changes">
+        Cancel
+      </button>
+      <button type="button" class="ui positive right labeled icon button" id="settings-ok-button"
+              title="Save settings">
+        Save
+        <i class="checkmark icon"></i>
+      </button>
     </div>
 </div>
 {% endmacro %}
 
+
+{% macro modal_training_progress() %}
+<div class="ui tiny modal" id="training-modal" role="dialog" aria-modal="true"
+     aria-labelledby="training-modal-title">
+  <div class="header" id="training-modal-title">Training</div>
+  <div class="ui form content">
+    <div class="ui progress" aria-live="polite">
+      <div class="bar"><div class="progress"></div></div>
+      <div class="label">Training progress</div>
+    </div>
+  </div>
+  <div class="actions">
+    <button type="button" class="ui red button" id="cancel-training-button"
+            onclick="return RootsTraining.on_cancel_training()" title="Stop training safely">
+      Stop Training
+    </button>
+    <button type="button" class="ui violet button" id="retry-training-button"
+            onclick="return RootsTraining.on_retry_training()" style="display:none"
+            title="Start a new training run with the same settings">
+      Retry Training
+    </button>
+    <button type="button" class="ui button" id="close-training-button"
+            onclick="RootsTraining.hide_modal()" style="display:none">
+      Close
+    </button>
+  </div>
+</div>
+{% endmacro %}
+
+
+{% macro modal_pipeline() %}
+<div class="ui large modal" id="pipeline-status-modal">
+  <div class="header">Analysis Progress</div>
+  <div class="content">
+    <div class="ui progress" id="pipeline-progress">
+      <div class="bar"><div class="progress"></div></div>
+    </div>
+    <p id="pipeline-current-message">Preparing analysis...</p>
+    <div class="ui negative message" id="pipeline-error-message" style="display:none"></div>
+    <div style="max-height:45vh; overflow:auto;">
+      <table class="ui compact celled table" id="pipeline-status-table">
+        <thead>
+          <tr><th>Image or pair</th><th>Stage</th><th>Status</th><th>Details</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="actions">
+    <a class="ui button" id="pipeline-diagnostics-button" href="/api/diagnostics"
+       download="RootDetector-diagnostics.zip"
+       title="Download logs and system details without input images">
+      Download diagnostics
+    </a>
+    <button type="button" class="ui red button" id="pipeline-cancel-button"
+            onclick="return RootPipeline.on_cancel(event)" title="Stop the active analysis safely">
+      Cancel
+    </button>
+    <button class="ui button" id="pipeline-retry-button" onclick="RootPipeline.on_retry_failed()" style="display:none">Retry failed</button>
+    <button class="ui positive button" id="pipeline-close-button" style="display:none">Close</button>
+  </div>
+</div>
+{% endmacro %}

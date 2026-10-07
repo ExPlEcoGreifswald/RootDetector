@@ -9,10 +9,10 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
         with:
           submodules: 'recursive'
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.7'
           #cache: 'pip' # caching pip dependencies
@@ -20,14 +20,27 @@ jobs:
       - name: Install requirements
         run: pip install -r requirements.txt
 
-      #- name: Fetch pretrained models
-      #  run: python fetch_pretrained_models.py
+      - name: Fetch and verify pretrained models
+        run: python fetch_pretrained_models.py
+
+      - name: Test browser-side upload reliability
+        run: node tests/testcases_js/test_upload_reliability_node.js
+
+      - name: Test pipeline upload isolation
+        run: node tests/testcases_js/test_pipeline_upload_isolation.js
+
+      - name: Test tracking filename pairing
+        run: node tests/testcases_js/test_tracking_utils.js
+
+      - name: Test reviewed training label selection
+        run: node tests/testcases_js/test_training_labels.js
 
       - name: Build
         run: python build.py --zip --prune-torchlibs
 
       - name: Archive binaries
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v6
         with:
-          name: binaries
-          path: builds/*.zip
+          name: RootDetector-Windows-portable
+          path: builds/*_DigIT_RootDetector.zip
+          if-no-files-found: error

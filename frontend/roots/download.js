@@ -85,9 +85,19 @@ RootTrackingDownload = class extends BaseDownload {
             n_matched_points   : tracking_data.n_matched_points,
             tracking_model     : tracking_data.tracking_model,
             segmentation_model : tracking_data.segmentation_model,
+            tracking_matcher   : tracking_data.tracking_matcher,
+            exclusion_mask_policy : tracking_data.exclusion_mask_policy,
+            exclusion_masks       : tracking_data.exclusion_masks,
         }
         zipdata[`${filename0}.${filename1}.json`] = JSON.stringify(jsondata);
         zipdata[`${filename0}.${filename1}.csv`]  = this.csv_data_statistics(filename0, filename1)
+        zipdata['tracking-results-manifest.json'] = JSON.stringify({
+            tracking_csv_schema: 2,
+            exclusion_mask_coordinate_system: 'observation1',
+            exclusion_mask_policy: tracking_data.exclusion_mask_policy,
+            tracking_matcher: tracking_data.tracking_matcher,
+            migration_warning: 'Tracking CSV files exported by RootDetector before schema 2 may have background, mask, same, decay, and growth values under incorrect headers. Re-export those analyses before comparing or aggregating them.',
+        }, null, 2)
         return zipdata;
     }
 
@@ -107,8 +117,11 @@ RootTrackingDownload = class extends BaseDownload {
             }
         }
 
-        const postdata = JSON.stringify({file_pairs:file_pairs})
-        const result   = await $.post('/compile_tracking_results', postdata)
+        const result = await RootSecurity.request(
+            '/compile_tracking_results',
+            'POST',
+            {file_pairs: file_pairs},
+        )
         downloadURI('tracking_results.zip', url_for_image(result))
     }
 
@@ -146,6 +159,11 @@ RootTrackingDownload = class extends BaseDownload {
             return;
         }
 
-        return (include_header? [header] : []).concat([data.join(', '), '']).join(';\n')
+        const csv_cell = value => {
+            const text = value == undefined ? '' : String(value)
+            return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
+        }
+        const csv_row = values => values.map(csv_cell).join(',') + '\r\n'
+        return (include_header ? csv_row(header) : '') + csv_row(data)
     }
 }

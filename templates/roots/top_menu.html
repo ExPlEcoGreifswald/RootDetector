@@ -1,20 +1,73 @@
-{% import   'base/top_menu.html'        as base_top_menu %}
-
-
-
 {% macro load_exclude_masks_item(app) %}
-<label for="input_masks" class="ui icon item">
+<a href="#" class="ui icon item" id="load-exclude-masks-button"
+        title="Load optional exclusion-mask images, such as masks for tape"
+        onclick="if(this.classList.contains('disabled')) return false; document.getElementById('input_masks').click(); return false;">
     <i class="images red icon"></i>
     Load Exclude Masks
-  </label>
+  </a>
   <input type="file" id="input_masks" style="display:none" onclick="this.value=null;"
          onchange="{{ app }}.FileInput.on_exclusionmasks_select(event)" accept="image/*" multiple>
 {% endmacro %}
 
 
-
 {% macro top_menu(app) %}
-{{ base_top_menu.top_menu(app, filemenu_extras=load_exclude_masks_item(app)) }}
+<div class="ui container menu page-wide">
+  <div class="header item" style="padding-top:0; padding-bottom:0">
+    <img class="logo" src="logo.svg" alt="RootDetector">
+  </div>
+
+  <div class="ui simple dropdown item" id="file-import-menu" role="button" tabindex="0"
+       aria-haspopup="menu" aria-expanded="false" aria-label="Open file import menu">
+    <i class="file icon"></i>
+    <span class="text">Files</span>
+    <i class="dropdown icon"></i>
+    <div class="ui menu">
+      <a href="#" class="ui icon item" id="load-input-images-button"
+              title="Choose one or more root images"
+              onclick="if(this.classList.contains('disabled')) return false; document.getElementById('input_images').click(); return false;">
+        <i class="images outline icon"></i>
+        Load Input Images
+      </a>
+      <input type="file" id="input_images" style="display:none"
+             onchange="{{ app }}.FileInput.on_inputfiles_select(event)" accept="image/*" multiple>
+
+      <a href="#" class="ui icon item" id="load-input-folder-button"
+              title="Choose a folder containing root images"
+              onclick="if(this.classList.contains('disabled')) return false; document.getElementById('input_folder').click(); return false;">
+        <i class="folder outline icon"></i>
+        Load Input Folder
+      </a>
+      <input type="file" id="input_folder" style="display:none"
+             onchange="{{ app }}.FileInput.on_inputfolder_select(event)" webkitdirectory directory multiple>
+
+      <div class="ui divider"></div>
+
+      <a href="#" class="ui icon item" id="load-annotations-button"
+              title="Load existing segmentation annotations or a results ZIP"
+              onclick="if(this.classList.contains('disabled')) return false; document.getElementById('annotations-input').click(); return false;">
+        <i class="images icon"></i>
+        Load Annotations
+      </a>
+      <input type="file" id="annotations-input" style="display:none"
+             onchange="{{ app }}.FileInput.on_annotations_select(event)" accept="image/*, application/zip, application/x-zip-compressed" multiple>
+
+      {{ load_exclude_masks_item(app) | indent(6) }}
+    </div>
+  </div>
+
+  <a href="#" class="ui simple item" id="settings-button"
+          title="Choose models, processing limits, and compute device"
+          onclick="if(this.classList.contains('disabled')) return false; {{ app }}.Settings.on_settings(); return false;">
+    <i class="wrench icon"></i>
+    <span class="text">Settings</span>
+  </a>
+
+  <a href="#" class="ui primary disabled item" id="pipeline-run-button"
+          title="Run detection for every image, then tracking for every valid pair"
+          tabindex="-1" aria-disabled="true"
+          onclick="if(this.classList.contains('disabled')) return false; RootPipeline.on_run_analysis(event); return false;">
+    <i class="play icon"></i>
+    Run Analysis
+  </a>
+</div>
 {% endmacro %}
-
-

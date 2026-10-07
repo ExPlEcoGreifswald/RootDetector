@@ -4,13 +4,85 @@
 {% import 'base/modals.html'          as     base_modals %}
 {% from   'roots/main_container.html' import main_container %}
 {% from   'roots/detection_tab.html'  import filetable_row_template %}
-{% from   'roots/modals.html'         import modal_settings %}
+{% from   'roots/modals.html'         import modal_settings, modal_pipeline, modal_training_progress %}
 
 {% set app = "RootDetectorApp" %}
 
 <html>
 <head>
     <title>DigIT RootDetector</title>
+    <script>
+      window.RootDetectorBoot = {
+        failed_assets: [],
+        asset_failed: function(event) {
+          const element = event.target
+          if(element && ['SCRIPT', 'LINK'].includes(element.tagName))
+            this.failed_assets.push(element.src || element.href || 'unknown asset')
+        },
+        error_details: function(error) {
+          if(typeof RootSecurity != 'undefined' && typeof RootSecurity.error_message == 'function')
+            return RootSecurity.error_message(error, '')
+          if(typeof error == 'string' && error.trim() != '[object Object]')
+            return error.trim().slice(0, 2000)
+          if(error && typeof error.message == 'string' && error.message.trim() != '[object Object]')
+            return error.message.trim().slice(0, 2000)
+          return ''
+        },
+        show_recovery: function(kind, error) {
+          const messages = {
+            assets: [
+              'RootDetector could not load its browser files.',
+              'Start <code>StartRootDetector.bat</code> from one complete extracted folder, '
+                + 'then reload. If you changed packages, close old RootDetector tabs first.',
+            ],
+            connection: [
+              'RootDetector is not reachable.',
+              'Start <code>StartRootDetector.bat</code> from the extracted folder, '
+                + 'keep its console window open, then reload this tab.',
+            ],
+            version: [
+              'This tab belongs to a different RootDetector version.',
+              'Close old RootDetector tabs, keep only the intended copy running, '
+                + 'then open the address shown by <code>StartRootDetector.bat</code>.',
+            ],
+            startup: [
+              'RootDetector could not initialize this page.',
+              'Reload once. If the problem continues, restart <code>StartRootDetector.bat</code> '
+                + 'and check its console or diagnostics.',
+            ],
+          }
+          const [heading, guidance] = messages[kind] || messages.startup
+          const details = this.error_details(error)
+          const box = document.createElement('div')
+          box.setAttribute('role', 'alert')
+          box.style.cssText = 'margin:2rem;padding:1.25rem;border:2px solid #b03060;background:#fff6f6;color:#7a1f35;font:16px/1.5 sans-serif'
+          box.innerHTML = '<strong>' + heading + '</strong><br>' + guidance
+            + (details ? '<br><small></small>' : '')
+          if(details)
+            box.querySelector('small').textContent = details
+          document.body.innerHTML = ''
+          document.body.appendChild(box)
+        },
+        start: async function() {
+          if(this.failed_assets.length || typeof RootDetectorApp == 'undefined') {
+            const missing = this.failed_assets.length
+              ? 'Missing: ' + this.failed_assets.join(', ')
+              : 'A required application script did not load.'
+            this.show_recovery('assets', new Error(missing))
+            return
+          }
+          try {
+            await RootDetectorApp.init()
+          } catch(error) {
+            console.error('RootDetector startup failed.', error)
+            const kind = error?.code == 'asset_schema_mismatch' ? 'version'
+              : error?.status == 0 ? 'connection' : 'startup'
+            this.show_recovery(kind, error)
+          }
+        },
+      }
+      window.addEventListener('error', event => RootDetectorBoot.asset_failed(event), true)
+    </script>
     {# TODO: indent #}
     {% include 'base/scripts.html'   %}
     {% include 'roots/scripts.html'  %}
@@ -19,14 +91,15 @@
 </head>
 
 
-<body onload="{{app}}.init()">
+<body onload="RootDetectorBoot.start()">
 
     {{ top_menu(app)             | indent }}
 
     {{ main_container(app)       | indent }}
 
     {{ modal_settings()          | indent }}
-    {{ base_modals.modal_training_progress()      | indent }}
+    {{ modal_pipeline()          | indent }}
+    {{ modal_training_progress()                  | indent }}
     {{ base_modals.modal_loading_files_progress() | indent }}
 
 </body>

@@ -58,7 +58,6 @@ class CLI(base_cli.CLI):
             return cls.training(args)
         else:
             raise NotImplementedError()
-        return True
 
     @staticmethod
     def evaluate(args):
@@ -71,14 +70,15 @@ class CLI(base_cli.CLI):
         predictionfiles = sorted(glob.glob(args.predictions.as_posix(), recursive=True))
         file_pairs = associate_predictions_to_annotations(predictionfiles, annotationfiles)
         if len(file_pairs) == 0:
-            print('Could not find any matching files')
-            return
+            print('Could not find any matching files', file=sys.stderr)
+            return 1
         
         print(f'Found {len(file_pairs)} result files and annotations.')
         evresults = [backend.evaluation.evaluate_single_file(*pair) for pair in file_pairs]
         output    = reformat_outputfilename(args.output.as_posix())
         backend.evaluation.save_evaluation_results(evresults, output)
         print(f'Output written to {output}')
+        return 0
 
     @classmethod
     def process(cls, args):
@@ -89,8 +89,8 @@ class CLI(base_cli.CLI):
         #FIXME: code duplication with upstream
         inputfiles = sorted(glob.glob(args.input.as_posix(), recursive=True))
         if len(inputfiles) == 0:
-            print('Could not find any files')
-            return
+            print('Could not find any files', file=sys.stderr)
+            return 1
 
         settings = backend.settings.Settings()
         setup_cache(get_cache_path())
@@ -116,20 +116,26 @@ class CLI(base_cli.CLI):
 
         print(f'Processing {len(inputfiles)} files')
         results = []
+        failures = 0
         for i,f in enumerate(inputfiles):
             print(f'[{i:4d} / {len(inputfiles)}] {f}')
             try:
                 result       = backend.root_detection.process_image(f, settings)
+            except KeyboardInterrupt:
+                print('\nProcessing cancelled.', file=sys.stderr)
+                return 130
             except Exception as e:
                 print(f'[ERROR] {e}', file=sys.stderr)
+                failures += 1
                 continue
             results += [{'filename':f, 'result':result}]
         
         if len(results)==0:
             print(f'[ERROR] Unable to process any file', file=sys.stderr)
-            return
+            return 1
         
         cls.write_results(results, args)
+        return 2 if failures else 0
 
     @staticmethod
     def write_results(results, args):
@@ -213,11 +219,24 @@ class CLI(base_cli.CLI):
             'lr'           : args.lr,
         }
         cb = lambda x: print(f'Training progress: {x*100:.1f}%        ', end='\r')
-        backend.training.start_training(inputfiles, annotationfiles, options, settings, callback=cb)
+        result = backend.training.start_training(
+            inputfiles,
+            annotationfiles,
+            options,
+            settings,
+            callback=cb,
+        )
+        if result.state == 'cancelled':
+            print('\nTraining cancelled.', file=sys.stderr)
+            return 130
+        if result.state == 'failed':
+            print('\n[ERROR] Training failed: {}'.format(result.message), file=sys.stderr)
+            return 1
 
         output = args.output.as_posix()
         model.save(output)
         print(f'Output written to {output}')
+        return 0
 
 
 
@@ -226,10 +245,9 @@ class CLI(base_cli.CLI):
     def run(cls):
         args = cls.create_parser().parse_args()
         if args.evaluate or args.process or args.training:
-            cls.process_cli_args(args)
-            return True
-        else:
-            return False
+            result = cls.process_cli_args(args)
+            return int(result) if result is not None else 1
+        return None
 
 
 def reformat_outputfilename(filename:str) -> str:
@@ -293,4 +311,3 @@ def no_ext_file_basename(filename:str) -> str:
     for ending in ['.segmentation.png', '.png', '.tiff', '.tif', '.jpg', '.jpeg']:
         filename = (filename+'\n').replace(ending+'\n', '').replace(ending.upper()+'\n', '').replace('\n','')
     return filename
-

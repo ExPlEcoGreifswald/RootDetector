@@ -6,6 +6,9 @@ cache
 models/*
 !models/pretrained_models.txt
 tests/logs
+logs/
 sync_models.py
 venv*
 .deno
+.playwright-cli/
+.local-notes/

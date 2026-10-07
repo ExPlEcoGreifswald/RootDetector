@@ -1,5 +1,35 @@
 {% import   'base/js_templates.html'  as base_js_templates %}
 {% import   'base/content_menu.html'  as base_content_menu %}
+{% import   'base/detection_tab.html' as base_detection_tab %}
+
+{% macro filetable_menu(
+    callback_on_process_all="",
+    callback_on_cancel="",
+    callback_on_download_all="",
+    download_menu=None
+) %}
+<div class="ui top attached menu" style="border-top-width:0px;">
+  <button type="button" class="ui button process-all item"
+          onclick="{{ callback_on_process_all }}(event)" title="Process every loaded image">
+    <i class="blue play icon" aria-hidden="true"></i>Process All
+  </button>
+  <span class="processing item" style="display:none" role="status">
+    <i class="loading spinner icon" aria-hidden="true"></i>Processing...
+  </span>
+  <button type="button" class="ui button cancel-processing item"
+          onclick="{{ callback_on_cancel }}(event)" style="display:none" title="Cancel processing">
+    <i class="red times icon" aria-hidden="true"></i>Cancel
+  </button>
+  {% if download_menu -%}
+    {{ download_menu | indent }}
+  {% else %}
+  <button type="button" class="ui button download-all item"
+          onclick="{{ callback_on_download_all }}(event)" title="Download all available results">
+    <i class="download icon" aria-hidden="true"></i>Download All
+  </button>
+  {%- endif %}
+</div>
+{% endmacro %}
 
 {% macro skeleton_checkbox() %}
 <div class="ui item disabled checkbox skeletonized-checkbox">
@@ -40,3 +70,11 @@
     {{ base_js_templates.filetable_row_template(app, content=roots_filetable_content) }}
 {% endmacro %}
 
+{% macro detection_tab(app) %}
+  {{ filetable_menu(
+      callback_on_process_all=app+".Detection.on_process_all",
+      callback_on_cancel=app+".Detection.on_cancel_processing",
+      callback_on_download_all=app+".Download.on_download_all"
+  ) }}
+  {{ base_detection_tab.base_main_table(app) }}
+{% endmacro %}

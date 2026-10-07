@@ -1,4 +1,12 @@
 models/*
+!models/pretrained_models.txt
 .git
-venv
+.gitignore
+venv*
 TESTDATA
+builds
+cache
+static
+tests/logs
+*.pyc
+__pycache__

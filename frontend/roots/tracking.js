@@ -5,58 +5,63 @@ var RootTracking = new function() {
         var $table = $('#tracking-filetable tbody')
         $table.find('tr').remove()
 
-        const parsed_filenames = files.map( 
-            f => { try{ return parse_filename(f.name)  } catch {  } }
-        )
-
-        //group files together by their experiment name and sort by date
-        //(grouped_files maps experiment name to array of indices)
-        const grouped_files = new Map()
-        for(const i in files){
-            const groupname = parsed_filenames[i]?.base
-            if(groupname == undefined)
-                continue;
-            let   group     = grouped_files.get(groupname) ?? []
-            group.push(i)
-            group.sort( (i0,i1) => parsed_filenames[i0].date - parsed_filenames[i1].date)
-            grouped_files.set( groupname, group )
-        }
-        const groupnames = [...grouped_files.keys()]
-        groupnames.sort()
-        
-        //construct the file table
+        const pairing_plan = plan_tracking_pairs(files)
         const table_rows = []
-        for(const groupname of groupnames){
-            const group = grouped_files.get(groupname)
-            for(const i in group.slice(0,-1)){
-                const [i0,i1] = [group[i], group[Number(i)+1]]
-                const [f0,f1] = [files[i0], files[i1]]
-
-                table_rows.push(
-                    $('template#tracking-item').tmpl({filename0:f0.name, filename1:f1.name})
-                )
-                GLOBAL.files[f0.name].tracking_results = {[f1.name]: {}};  //TODO: refactor
-            }
+        for(const [filename0, filename1] of pairing_plan.pairs){
+            table_rows.push(
+                $('template#tracking-item').tmpl({filename0:filename0, filename1:filename1})
+            )
+            GLOBAL.files[filename0].tracking_results = {[filename1]: {}};  //TODO: refactor
         }
 
-        setTimeout( () => $table.append( table_rows ), 0 )
+        $table.append(table_rows)
         const n = table_rows.length;
         $('#tracking-filetable thead th').text(`${n} Image Pair${(n==1)?'':'s'} Loaded`)
+        $('#tracking-pairing-message').toggle(
+            n == 0 && files.length > 0 && pairing_plan.issues.length == 0
+        )
+        const $issues = $('#tracking-pairing-issues-message')
+        const $issue_list = $issues.find('.list').empty()
+        for(const issue of pairing_plan.issues){
+            let message
+            if(issue.code == 'duplicate_date'){
+                message = (
+                    `${issue.base} has ${issue.filenames.length} files dated ${issue.date}: `
+                    + `${issue.filenames.join(', ')}. Load only one observation for this date.`
+                )
+            } else {
+                message = (
+                    `No valid observation date was found in ${issue.filename}. `
+                    + 'Use a date such as 15.04.2026 in the filename.'
+                )
+            }
+            $issue_list.append($('<li>').text(message))
+        }
+        $issues.toggle(pairing_plan.issues.length > 0)
+        return this.get_file_pairs()
     };
+
+    this.get_file_pairs = function(){
+        const pairs = []
+        for(const file0 of Object.values(GLOBAL.files)){
+            for(const filename1 of Object.keys(file0.tracking_results ?? {}))
+                pairs.push([file0.name, filename1])
+        }
+        return pairs
+    }
 
     this.load_result = async function(filename0, filename1, tracking_results_file, segmentation0_file, segmentation1_file){
         tracking_results_file = await tracking_results_file
         segmentation0_file    = rename_file(await segmentation0_file, `${filename0}.segmentation.png`)
         segmentation1_file    = rename_file(await segmentation1_file, `${filename1}.segmentation.png`)
 
-        upload_file_to_flask('/file_upload', segmentation0_file);
-        upload_file_to_flask('/file_upload', segmentation1_file);
+        await RootSecurity.upload_file(segmentation0_file)
+        await RootSecurity.upload_file(segmentation1_file)
 
-        tracking_results_file.text().then(function(text){
-            var jsondata = JSON.parse(text);
-            jsondata['corrections'] = [];
-            process_single(filename0, filename1, false, jsondata)
-        });
+        const text = await tracking_results_file.text()
+        const jsondata = JSON.parse(text)
+        jsondata['corrections'] = []
+        return await process_single(filename0, filename1, false, jsondata)
     }
 
 
@@ -104,13 +109,15 @@ var RootTracking = new function() {
     };
 
     this.on_process_all = async function(event){
+        const outcomes = []
         for(var file0 of Object.values(GLOBAL.files)){
             if(file0.tracking_results==undefined)
                 continue
             
             for(var filename1 of Object.keys(file0.tracking_results))
-                await process_single(file0.name, filename1)
+                outcomes.push(await process_single(file0.name, filename1))
         }
+        return outcomes
     }
 
     var process_single = async function(filename0, filename1, upload_images=true, extra_data={}){
@@ -124,8 +131,8 @@ var RootTracking = new function() {
 
         if(upload_images){
             try {    
-                await upload_file_to_flask(GLOBAL.files[filename0]);
-                await upload_file_to_flask(GLOBAL.files[filename1]);
+                await RootSecurity.upload_file(GLOBAL.files[filename0]);
+                await RootSecurity.upload_file(GLOBAL.files[filename1]);
             } catch (error) {
                 set_failed(filename0, filename1, error)
                 return;
@@ -136,26 +143,26 @@ var RootTracking = new function() {
         var request_data = {filename0:filename0, filename1:filename1};
         Object.assign(request_data, extra_data)
         
-        var request_method = $.get;
-        if(Object.keys(extra_data).length>0){
-            request_method = $.post;
-            request_data   = JSON.stringify(request_data)
-        }
-        return request_method(`/process_root_tracking`, request_data).done( data => {
+        try {
+            const data = await RootSecurity.request('/process_root_tracking', 'POST', request_data)
+
+            if(data.code == 'too_many_roots'){
+                set_failed(filename0, filename1, data)
+                return {state: 'skipped', data: data}
+            }
             set_tracking_data(filename0, filename1, data)
             if(data.success)
                 $dimmer.dimmer('hide');
             else {
                 set_failed(filename0, filename1, data)
             }
-        }).catch( (error) => {
+            return {state: data.success? 'completed' : 'review_required', data: data}
+        } catch(error) {
             set_failed(filename0, filename1, error)
-        } )
-        .always( () => {
+            return {state: 'failed', error: error}
+        } finally {
             $root.find('polyline.correction-line').remove()
-            //delete_image(filename0);
-            //delete_image(filename1);
-        });
+        }
     }
 
     /* TODO: states
@@ -188,7 +195,10 @@ var RootTracking = new function() {
         const $root   = $(`[filename0="${filename0}"][filename1="${filename1}"]`)
         const $dimmer = $root.find('.dimmer')
 
-        const too_many_roots = (data_or_error?.responseText == 'TOO_MANY_ROOTS')
+        const too_many_roots = (
+            data_or_error?.responseText == 'TOO_MANY_ROOTS' ||
+            data_or_error?.code == 'too_many_roots'
+        )
         const no_matches     = (data_or_error?.success === false)
 
         $dimmer.find('.content.processing').hide()
@@ -203,7 +213,22 @@ var RootTracking = new function() {
         if(too_many_roots)
             GLOBAL.files[filename0].tracking_results[filename1] = {
                 success: 'TOO_MANY_ROOTS',
+                code: 'too_many_roots',
             };
+    }
+
+    this.apply_pipeline_result = function(item){
+        const filename0 = item.filename0
+        const filename1 = item.filename1
+        if(item.result){
+            set_tracking_data(filename0, filename1, item.result)
+            if(item.state == 'completed')
+                $(`[filename0="${filename0}"][filename1="${filename1}"] .dimmer`).dimmer('hide')
+            else
+                set_failed(filename0, filename1, item.result)
+        } else {
+            set_failed(filename0, filename1, item.error ?? {code: item.state})
+        }
     }
 
 
@@ -516,4 +541,3 @@ TrackingViewControls = class TrackingViewControls extends ViewControls{
         RootTracking.on_svg_mousemove(event)
     }
 }
-

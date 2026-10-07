@@ -1,0 +1,64 @@
+.ui.toast-container {
+    max-width: calc(100vw - 1.75rem);
+}
+
+.ui.toast-container .toast-box.compact,
+.ui.toast-container .toast-box > .compact {
+    box-sizing: border-box;
+    width: 34rem;
+    max-width: calc(100vw - 1.75rem);
+}
+
+.ui.toast-container .toast-box .ui.toast {
+    box-sizing: border-box;
+    padding-right: 2.5rem;
+}
+
+.ui.toast-container .toast-box .content,
+.ui.toast-container .toast-box .content .header {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: normal;
+}
+
+#settings-dialog > .close.button {
+    top: 0.7rem;
+    right: 0.7rem;
+    margin: 0;
+    background: transparent;
+    color: rgba(0, 0, 0, 0.65);
+    box-shadow: none;
+}
+
+#settings-dialog > .header {
+    padding-right: 3.5rem;
+}
+
+#settings-dialog > .content {
+    box-sizing: border-box;
+    max-height: calc(100vh - 11rem);
+    overflow-y: auto;
+}
+
+#file-import-menu.keyboard-open > .menu {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+@media (max-width: 480px) {
+    .ui.menu.page-wide {
+        flex-wrap: wrap;
+    }
+
+    .ui.menu.page-wide > #pipeline-run-button {
+        flex: 1 0 100%;
+        justify-content: center;
+        border-top: 1px solid rgba(34, 36, 38, 0.15);
+    }
+
+    .ui.menu.page-wide > #pipeline-run-button::before {
+        display: none;
+    }
+}

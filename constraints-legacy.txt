@@ -1,0 +1,15 @@
+# Compatibility constraints for the Python 3.7 reference environment.
+# These are transitive dependencies required by Flask 2.0.3 and the test tools.
+Werkzeug==2.0.3
+Jinja2==3.0.3
+itsdangerous==2.1.2
+click==8.1.7
+MarkupSafe==2.1.5
+importlib-metadata==6.7.0
+typing-extensions==4.7.1
+zipp==3.15.0
+imageio==2.9.0
+networkx==2.6.3
+PyWavelets==1.1.1
+matplotlib==3.5.3
+protobuf==4.24.4

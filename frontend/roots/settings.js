@@ -2,6 +2,39 @@
 
 RootsSettings = class extends BaseSettings{
 
+    static settings_keydown_handler = undefined
+
+    static on_settings(){
+        super.on_settings()
+        const $dialog = $('#settings-dialog')
+        const dialog = $dialog[0]
+        if(this.settings_keydown_handler)
+            dialog.removeEventListener('keydown', this.settings_keydown_handler, true)
+        this.settings_keydown_handler = event => {
+            if(event.key != 'Tab')
+                return
+            const selector = [
+                'button:not([disabled])',
+                'input:not([type="hidden"]):not([disabled])',
+                '.ui.dropdown[tabindex]:not(.disabled)',
+                '[tabindex]:not([tabindex="-1"])',
+            ].join(',')
+            const focusable = [...new Set($dialog.find(selector).filter(':visible').get())]
+            if(!focusable.length)
+                return
+            const current = focusable.indexOf(document.activeElement)
+            const direction = event.shiftKey ? -1 : 1
+            const next = current < 0
+                ? 0
+                : (current + direction + focusable.length) % focusable.length
+            event.preventDefault()
+            event.stopPropagation()
+            focusable[next].focus()
+        }
+        dialog.addEventListener('keydown', this.settings_keydown_handler, true)
+        setTimeout(() => $dialog.find('button.close')[0]?.focus(), 0)
+    }
+
     //override
     static async load_settings(){
         const data = await super.load_settings();
