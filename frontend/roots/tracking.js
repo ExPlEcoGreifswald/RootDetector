@@ -55,8 +55,8 @@ var RootTracking = new function() {
         segmentation0_file    = rename_file(await segmentation0_file, `${filename0}.segmentation.png`)
         segmentation1_file    = rename_file(await segmentation1_file, `${filename1}.segmentation.png`)
 
-        await upload_file_to_flask(segmentation0_file)
-        await upload_file_to_flask(segmentation1_file)
+        await RootSecurity.upload_file(segmentation0_file)
+        await RootSecurity.upload_file(segmentation1_file)
 
         const text = await tracking_results_file.text()
         const jsondata = JSON.parse(text)
@@ -131,8 +131,8 @@ var RootTracking = new function() {
 
         if(upload_images){
             try {    
-                await upload_file_to_flask(GLOBAL.files[filename0]);
-                await upload_file_to_flask(GLOBAL.files[filename1]);
+                await RootSecurity.upload_file(GLOBAL.files[filename0]);
+                await RootSecurity.upload_file(GLOBAL.files[filename1]);
             } catch (error) {
                 set_failed(filename0, filename1, error)
                 return;

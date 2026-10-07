@@ -101,3 +101,25 @@ def test_descriptor_matching_validates_batch_size():
             n=2,
             step=0,
         )
+
+
+def test_tracking_rejects_dimensions_that_overflow_point_coordinates():
+    class Model:
+        def compute_descriptors_at_points(self, *_args, **_kwargs):
+            raise AssertionError('oversize inputs must fail before descriptor extraction')
+
+    image = np.zeros((32769, 1, 3), dtype='uint8')
+    segmentation = np.zeros((32769, 1), dtype='uint8')
+    with pytest.raises(ValueError, match='32768 pixels'):
+        tracking_matcher.match_images(Model(), image, image, segmentation, segmentation)
+
+
+def test_descriptor_matching_rejects_coordinate_overflow():
+    with pytest.raises(ValueError, match='16-bit image range'):
+        tracking_matcher.match_descriptors(
+            descriptors(2),
+            descriptors(2),
+            np.asarray([[0, 0], [32768, 0]]),
+            np.asarray([[0, 0], [1, 0]]),
+            n=2,
+        )

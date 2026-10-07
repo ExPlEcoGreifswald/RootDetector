@@ -13,8 +13,8 @@ RootPipeline = class {
         const disabled = Object.keys(GLOBAL.files).length == 0
         $('#pipeline-run-button')
             .toggleClass('disabled', disabled)
-            .prop('disabled', disabled)
             .attr('aria-disabled', String(disabled))
+            .attr('tabindex', disabled ? '-1' : '0')
     }
 
     static async on_run_analysis(event){
@@ -388,11 +388,14 @@ RootPipeline = class {
         const run_disabled = running || Object.keys(GLOBAL.files).length == 0
         $('#pipeline-run-button')
             .toggleClass('disabled loading', run_disabled)
-            .prop('disabled', run_disabled)
             .attr('aria-disabled', String(run_disabled))
+            .attr('tabindex', run_disabled ? '-1' : '0')
         $('#settings-button, #load-input-images-button, #load-input-folder-button, #load-annotations-button, #load-exclude-masks-button, .process-all')
             .toggleClass('disabled', running)
             .prop('disabled', running)
+            .attr('aria-disabled', String(running))
+        $('#settings-button, #load-input-images-button, #load-input-folder-button, #load-annotations-button, #load-exclude-masks-button')
+            .attr('tabindex', running ? '-1' : '0')
         $('#input_images, #input_folder, #input_masks').prop('disabled', running)
     }
 

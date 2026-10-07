@@ -40,3 +40,25 @@
     max-height: calc(100vh - 11rem);
     overflow-y: auto;
 }
+
+#file-import-menu.keyboard-open > .menu {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+@media (max-width: 480px) {
+    .ui.menu.page-wide {
+        flex-wrap: wrap;
+    }
+
+    .ui.menu.page-wide > #pipeline-run-button {
+        flex: 1 0 100%;
+        justify-content: center;
+        border-top: 1px solid rgba(34, 36, 38, 0.15);
+    }
+
+    .ui.menu.page-wide > #pipeline-run-button::before {
+        display: none;
+    }
+}

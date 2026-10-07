@@ -72,6 +72,7 @@ Training is separate from ordinary analysis. You do not need to review or label 
 - **The first start appears slow:** model and PyTorch downloads can be large. Keep the console open and check the internet connection.
 - **The first start stops with a download error:** allow access to the required hosts, verify free disk space, and run **StartRootDetector.bat** again. Existing verified downloads are reused.
 - **An image is rejected:** use PNG, JPEG, TIFF, or TIF and ensure the file is not damaged.
+- **An image exceeds the upload limit:** the default is 256 MiB per file. Ask a maintainer to adjust the local limit after checking available memory and the image's dimensions; the [Technical Guide](TECHNICAL-GUIDE.md) explains how.
 - **No tracking pair appears:** verify that at least two filenames share the same sample name and contain supported dates.
 - **Tracking says “too many roots”:** this safety limit prevents excessive memory use. Use a suitable lower-root pair for tracking; raise the threshold only for a deliberate expert run on adequately resourced hardware.
 - **Tracking requires review:** too few reliable automatic matches were found. Inspect or correct the pair manually.

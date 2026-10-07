@@ -8,8 +8,11 @@ def read(relative_path):
     return (ROOT / relative_path).read_text(encoding='utf-8')
 
 
-def test_file_import_controls_are_native_buttons():
+def test_file_import_controls_are_fomantic_menu_links_with_disabled_guards():
     template = read('templates/roots/top_menu.html')
+    pipeline = read('frontend/roots/pipeline.js')
+    app = read('frontend/roots/app.js')
+    styles = read('frontend/roots/styles.css')
 
     for control_id in [
         'load-input-images-button',
@@ -18,8 +21,34 @@ def test_file_import_controls_are_native_buttons():
         'load-exclude-masks-button',
     ]:
         assert 'id="{}"'.format(control_id) in template
-    assert template.count('type="button"') >= 6
+    assert template.count('<a href="#" class="ui') >= 6
+    assert "if(this.classList.contains('disabled')) return false" in template
     assert 'aria-disabled="true"' in template
+    assert "attr('tabindex', run_disabled ? '-1' : '0')" in pipeline
+    assert "keydown.rootdetector-menu" in app
+    assert 'event.target !== event.currentTarget' in app
+    assert 'id="file-import-menu"' in template
+    assert 'aria-expanded="false"' in template
+    assert "$('#file-import-menu').dropdown({action: 'hide'})" in app
+    assert "addClass('keyboard-open')" in app
+    assert "focusout.rootdetector-files-menu" in app
+    assert "keydown.rootdetector-files-menu" in app
+    assert "mouseenter.rootdetector-files-menu mouseleave.rootdetector-files-menu" in app
+    assert "find('.menu a.item:not(.disabled)').first().trigger('focus')" in app
+    assert '#file-import-menu.keyboard-open > .menu' in styles
+
+
+def test_narrow_top_menu_keeps_run_analysis_visible():
+    styles = read('frontend/roots/styles.css')
+    template = read('templates/roots/top_menu.html')
+
+    assert 'class="ui container menu page-wide"' in template
+    assert 'id="pipeline-run-button"' in template
+    assert '@media (max-width: 480px)' in styles
+    assert '.ui.menu.page-wide {' in styles
+    assert 'flex-wrap: wrap;' in styles
+    assert '.ui.menu.page-wide > #pipeline-run-button {' in styles
+    assert 'flex: 1 0 100%;' in styles
 
 
 def test_settings_actions_are_keyboard_focusable():

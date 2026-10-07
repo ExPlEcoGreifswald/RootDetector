@@ -22,11 +22,41 @@ RootDetectorApp = class extends BaseApp {
             if(path == 'training')
                 this.Training.refresh_tab()
         }})
+        $('#file-import-menu').dropdown({action: 'hide'})
         $(document).on('keydown.rootdetector-buttons', '[role="button"]', event => {
-            if(event.key != 'Enter' && event.key != ' ')
+            if(event.target !== event.currentTarget || (event.key != 'Enter' && event.key != ' '))
                 return
             event.preventDefault()
+            if(event.currentTarget.id == 'file-import-menu'){
+                $(event.currentTarget).dropdown('show').addClass('keyboard-open').attr('aria-expanded', 'true')
+                $(event.currentTarget).find('.menu a.item:not(.disabled)').first().trigger('focus')
+                return
+            }
             event.currentTarget.click()
+        })
+        $(document).on('focusout.rootdetector-files-menu', '#file-import-menu', event => {
+            if(event.relatedTarget && event.currentTarget.contains(event.relatedTarget))
+                return
+            $(event.currentTarget).removeClass('keyboard-open')
+                .attr('aria-expanded', String(event.currentTarget.matches(':hover')))
+        })
+        $(document).on('mouseenter.rootdetector-files-menu mouseleave.rootdetector-files-menu', '#file-import-menu', event => {
+            $(event.currentTarget).attr('aria-expanded', String(
+                event.type == 'mouseenter' || event.currentTarget.classList.contains('keyboard-open')
+            ))
+        })
+        $(document).on('keydown.rootdetector-files-menu', '#file-import-menu', event => {
+            if(event.key != 'Escape')
+                return
+            event.preventDefault()
+            $(event.currentTarget).removeClass('keyboard-open').dropdown('hide').attr('aria-expanded', 'false').trigger('focus')
+        })
+        $(document).on('keydown.rootdetector-menu', '.ui.menu a.item[href="#"]', event => {
+            if(event.key != ' ')
+                return
+            event.preventDefault()
+            if(!event.currentTarget.classList.contains('disabled'))
+                event.currentTarget.click()
         })
         this.FileInput.setup_drag_and_drop()
         this.enhance_accessibility()

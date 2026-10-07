@@ -43,6 +43,25 @@ async function test_error_normalization(){
 }
 
 
+async function test_upload_preflight_uses_session_limit(){
+    let transfer_count = 0
+    global.upload_file_to_flask = () => {
+        transfer_count += 1
+        return Promise.resolve({files: []})
+    }
+    RootSecurity.limits = {max_upload_bytes: 1024}
+    const oversized = {name: 'large.tiff', size: 1025}
+    assert.throws(
+        () => RootSecurity.upload_file(oversized),
+        error => error.code === 'upload_too_large' && error.status === 413,
+    )
+    assert.strictEqual(transfer_count, 0)
+    await RootSecurity.upload_file({name: 'small.tiff', size: 1024})
+    assert.strictEqual(transfer_count, 1)
+    RootSecurity.limits = undefined
+}
+
+
 async function test_boot_recovery(){
     const template = fs.readFileSync(path.join(repository, 'templates/index.html'), 'utf8')
     const inlineScript = template.match(/<script>([\s\S]*?)<\/script>/)?.[1]
@@ -169,6 +188,7 @@ async function test_item_71_resume(){
 
 Promise.resolve()
     .then(test_error_normalization)
+    .then(test_upload_preflight_uses_session_limit)
     .then(test_boot_recovery)
     .then(test_result_fetch_retry)
     .then(test_item_71_resume)

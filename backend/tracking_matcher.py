@@ -18,6 +18,7 @@ import torchvision
 MATCHER_NAME = 'rootdetector-cancellable-bruteforce'
 MATCHER_VERSION = 1
 DEFAULT_BATCH_SIZE = 512
+MAX_TRACKING_DIMENSION = np.iinfo(np.int16).max + 1
 
 ProgressCallback = tp.Callable[[float, str], None]
 CancellationCheck = tp.Callable[[], None]
@@ -136,8 +137,15 @@ def match_descriptors(
     """Match released-model descriptors with a checkpoint per batch."""
     if step < 1:
         raise ValueError('Tracking batch size must be at least 1.')
+    points0 = np.asarray(points0)
+    points1 = np.asarray(points1)
     if len(descriptors0) != len(points0) or len(descriptors1) != len(points1):
         raise ValueError('Descriptor and point counts must match.')
+    if any(
+        np.any(points < 0) or np.any(points >= MAX_TRACKING_DIMENSION)
+        for points in (points0, points1)
+    ):
+        raise ValueError('Tracking coordinates exceed the supported 16-bit image range.')
 
     _check(cancellation_check)
     n = min(n, len(descriptors0), len(descriptors1))
@@ -230,6 +238,19 @@ def match_images(
         raise ValueError('Tracking images must have three dimensions.')
     if len(segmentation0.shape) != 2 or len(segmentation1.shape) != 2:
         raise ValueError('Tracking segmentations must have two dimensions.')
+    image0_shape = image0.shape[-2:] if torch.is_tensor(image0) else image0.shape[:2]
+    image1_shape = image1.shape[-2:] if torch.is_tensor(image1) else image1.shape[:2]
+    if any(
+        dimension > MAX_TRACKING_DIMENSION
+        for shape in (image0_shape, image1_shape, segmentation0.shape, segmentation1.shape)
+        for dimension in shape
+    ):
+        raise ValueError(
+            'Tracking does not support images larger than {} pixels on either axis. '
+            'Prepare a smaller, consistent region of interest before tracking.'.format(
+                MAX_TRACKING_DIMENSION
+            )
+        )
 
     _check(cancellation_check)
     image0 = (

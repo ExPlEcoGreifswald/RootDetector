@@ -287,3 +287,35 @@ def test_upload_validation_rejects_paths_corruption_and_name_conflicts(tmp_path,
     assert scientific_policy.status_code == 400
     assert scientific_policy.get_json()['code'] == 'invalid_settings'
     assert len(scientific_policy.get_json()['diagnostic_id']) == 12
+
+
+def test_configured_upload_limit_is_reported_and_enforced(tmp_path, monkeypatch):
+    monkeypatch.setenv('ROOT_PATH', os.getcwd())
+    monkeypatch.setenv('INSTANCE_PATH', str(tmp_path))
+    monkeypatch.setenv('DO_NOT_RELOAD', '1')
+    monkeypatch.setenv('ROOTDETECTOR_MAX_UPLOAD_MIB', '1')
+    monkeypatch.setattr('backend.settings.ensure_pretrained_models', lambda: None)
+    monkeypatch.setattr('backend.settings.Settings', FakeSettings)
+
+    app = App()
+    app.testing = True
+    client = app.test_client()
+    assert client.get('/api/session').get_json()['limits']['max_upload_bytes'] == 1024 * 1024
+    assert app.config['MAX_CONTENT_LENGTH'] == 2 * 1024 * 1024
+
+    too_large_file = client.post(
+        '/file_upload',
+        data={'files': (io.BytesIO(b'x' * (1024 * 1024 + 1)), 'too-large.png')},
+        headers=request_headers(app),
+    )
+    assert too_large_file.status_code == 413
+    assert too_large_file.get_json()['code'] == 'upload_too_large'
+    assert not os.path.exists(os.path.join(app.cache_path, 'too-large.png'))
+
+    too_large_request = client.post(
+        '/file_upload',
+        data={'files': (io.BytesIO(b'x' * (2 * 1024 * 1024 + 1)), 'too-large.png')},
+        headers=request_headers(app),
+    )
+    assert too_large_request.status_code == 413
+    assert too_large_request.get_json()['code'] == 'upload_too_large'

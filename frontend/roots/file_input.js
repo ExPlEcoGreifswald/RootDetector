@@ -32,7 +32,7 @@ RootsFileInput = class extends BaseFileInput{
         const max_attempts = Math.max(1, Number(options.max_attempts ?? 3))
         for(let attempt = 1; attempt <= max_attempts; attempt += 1){
             try {
-                const request = upload_file_to_flask(file)
+                const request = RootSecurity.upload_file(file)
                 if(options.on_request)
                     options.on_request(request)
                 const response = await request

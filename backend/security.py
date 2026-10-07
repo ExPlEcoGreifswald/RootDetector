@@ -15,6 +15,8 @@ SUPPORTED_IMAGE_FORMATS = {'JPEG', 'PNG', 'TIFF'}
 ASSET_SCHEMA_VERSION = 'rootdetector-web-rc2-1'
 MAX_FILENAME_BYTES = 240
 MAX_UPLOAD_BYTES = 256 * 1024 * 1024
+MAX_CONFIGURABLE_UPLOAD_MIB = 4096
+UPLOAD_FORM_OVERHEAD_BYTES = 1024 * 1024
 MAX_UPLOAD_FILES = 16
 MAX_IMAGE_PIXELS = 200_000_000
 PIL.Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
@@ -27,6 +29,26 @@ class ValidationError(ValueError):
         super().__init__(message)
         self.code = code
         self.status = status
+
+
+def configured_max_upload_bytes() -> int:
+    """Return the explicit per-file limit, retaining 256 MiB by default."""
+    raw_value = os.environ.get('ROOTDETECTOR_MAX_UPLOAD_MIB', '256')
+    try:
+        size_mib = int(raw_value)
+    except ValueError as exc:
+        raise ValueError('ROOTDETECTOR_MAX_UPLOAD_MIB must be a whole number of MiB.') from exc
+    if not 1 <= size_mib <= MAX_CONFIGURABLE_UPLOAD_MIB:
+        raise ValueError(
+            'ROOTDETECTOR_MAX_UPLOAD_MIB must be between 1 and {} MiB.'.format(
+                MAX_CONFIGURABLE_UPLOAD_MIB
+            )
+        )
+    return size_mib * 1024 * 1024
+
+
+def upload_limit_label(max_upload_bytes:int) -> str:
+    return '{} MiB'.format(max_upload_bytes // (1024 * 1024))
 
 
 def validate_filename(
@@ -90,13 +112,22 @@ def files_are_identical(path0:str, path1:str) -> bool:
     return os.path.getsize(path0) == os.path.getsize(path1) and sha256(path0) == sha256(path1)
 
 
-def validate_image_file(path:str) -> tp.Dict[str, tp.Any]:
+def validate_image_file(
+    path:str,
+    max_upload_bytes:int=MAX_UPLOAD_BYTES,
+) -> tp.Dict[str, tp.Any]:
     """Fully decode the first frame to reject inputs processing cannot read."""
     size = os.path.getsize(path)
     if size == 0:
         raise ValidationError('Uploaded images must not be empty.', 'empty_upload')
-    if size > MAX_UPLOAD_BYTES:
-        raise ValidationError('The uploaded image exceeds the 256 MiB limit.', 'upload_too_large', 413)
+    if size > max_upload_bytes:
+        raise ValidationError(
+            'The uploaded image exceeds the {} file limit.'.format(
+                upload_limit_label(max_upload_bytes)
+            ),
+            'upload_too_large',
+            413,
+        )
 
     try:
         with warnings.catch_warnings():

@@ -28,6 +28,7 @@ from . import root_tracking
 class App(BaseApp):
     def __init__(self, *args, **kw):
         self.session_token = secrets.token_urlsafe(32)
+        self.max_upload_bytes = backend.security.configured_max_upload_bytes()
         backend.diagnostics.configure_logging()
         # Packaged Windows releases contain the manifest but fetch the large
         # verified model files on first launch. Source/Docker users can prefetch
@@ -39,7 +40,7 @@ class App(BaseApp):
             return
 
         self.config.update(
-            MAX_CONTENT_LENGTH=backend.security.MAX_UPLOAD_BYTES,
+            MAX_CONTENT_LENGTH=self.max_upload_bytes + backend.security.UPLOAD_FORM_OVERHEAD_BYTES,
             MAX_FORM_MEMORY_SIZE=1024 * 1024,
             MAX_FORM_PARTS=backend.security.MAX_UPLOAD_FILES,
         )
@@ -154,7 +155,9 @@ class App(BaseApp):
     def handle_request_too_large(self, _error):
         return self.json_error(
             'upload_too_large',
-            'The request exceeds RootDetector\'s 256 MiB upload limit.',
+            'The request exceeds RootDetector\'s {} file limit plus multipart overhead.'.format(
+                backend.security.upload_limit_label(self.max_upload_bytes)
+            ),
             413,
         )
 
@@ -183,7 +186,7 @@ class App(BaseApp):
             'token': self.session_token,
             'asset_schema': backend.security.ASSET_SCHEMA_VERSION,
             'limits': {
-                'max_upload_bytes': backend.security.MAX_UPLOAD_BYTES,
+                'max_upload_bytes': self.max_upload_bytes,
                 'max_upload_files': backend.security.MAX_UPLOAD_FILES,
                 'max_image_pixels': backend.security.MAX_IMAGE_PIXELS,
             },
@@ -276,7 +279,10 @@ class App(BaseApp):
                 os.close(handle)
                 temporary_paths.append(temporary)
                 storage.save(temporary)
-                metadata = backend.security.validate_image_file(temporary)
+                metadata = backend.security.validate_image_file(
+                    temporary,
+                    max_upload_bytes=self.max_upload_bytes,
+                )
                 if os.path.exists(destination) and not backend.security.files_are_identical(temporary, destination):
                     raise backend.security.ValidationError(
                         'A different file named {} is already loaded. Clear the current project or rename the file.'.format(name),

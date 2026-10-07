@@ -1,5 +1,6 @@
 RootSecurity = class {
     static token = undefined
+    static limits = undefined
     static asset_schema = 'rootdetector-web-rc2-1'
 
     static async initialize(){
@@ -13,6 +14,7 @@ RootSecurity = class {
             throw error
         }
         this.token = session.token
+        this.limits = session.limits
         $.ajaxPrefilter((options, _originalOptions, request) => {
             const method = String(options.method ?? options.type ?? 'GET').toUpperCase()
             const target = new URL(options.url, window.location.href)
@@ -20,6 +22,21 @@ RootSecurity = class {
                 request.setRequestHeader('X-RootDetector-Token', this.token)
         })
         return session
+    }
+
+    static upload_file(file){
+        const max_bytes = Number(this.limits?.max_upload_bytes)
+        if(Number.isFinite(max_bytes) && max_bytes > 0 && file?.size > max_bytes){
+            const limit_mib = Math.floor(max_bytes / (1024 * 1024))
+            const error = new Error(
+                `${file.name} exceeds the ${limit_mib} MiB file limit. `
+                + 'Choose a smaller image or ask a maintainer to adjust the local upload setting.'
+            )
+            error.code = 'upload_too_large'
+            error.status = 413
+            throw error
+        }
+        return upload_file_to_flask(file)
     }
 
     static request(url, method, data=undefined){
